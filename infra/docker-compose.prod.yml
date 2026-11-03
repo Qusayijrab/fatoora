@@ -1,0 +1,87 @@
+# Production-style stack: everything behind the web app on port 3000.
+#   cp infra/.env.prod.example infra/.env.prod   (and fill in real secrets)
+#   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
+# Put a TLS-terminating reverse proxy (Caddy, Nginx, a cloud load balancer) in front.
+name: fatoora-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fatoora
+      POSTGRES_USER: fatoora
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fatoora -d fatoora"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  s3:
+    image: rustfs/rustfs:1.0.3
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY}
+    volumes:
+      - s3-data:/data
+
+  s3-init:
+    image: amazon/aws-cli:2.37.12
+    depends_on: [s3]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for i in $$(seq 1 30); do
+          aws --endpoint-url http://s3:9000 s3api head-bucket --bucket fatoora 2>/dev/null && exit 0
+          aws --endpoint-url http://s3:9000 s3 mb s3://fatoora && exit 0
+          sleep 2
+        done
+        exit 1
+    restart: "no"
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3-init:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/fatoora
+      DB_USERNAME: fatoora
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
+      PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL, e.g. https://app.example.com}
+      S3_ENDPOINT: http://s3:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM}
+      PAYMENTS_PROVIDER: ${PAYMENTS_PROVIDER:-mock}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+
+  frontend:
+    build: ../frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    environment:
+      API_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+
+volumes:
+  pg-data:
+  s3-data:

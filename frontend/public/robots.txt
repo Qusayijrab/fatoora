@@ -1,0 +1,4 @@
+User-agent: *
+# Payment and portal links are private capability URLs.
+Disallow: /pay/
+Disallow: /portal/
