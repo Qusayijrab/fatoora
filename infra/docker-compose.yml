@@ -1,0 +1,66 @@
+# Local development services.
+#   cp infra/.env.example infra/.env
+#   docker compose -f infra/docker-compose.yml up -d
+name: fatoora
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fatoora}
+      POSTGRES_USER: ${POSTGRES_USER:-fatoora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fatoora}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
+  # S3-compatible object storage. MinIO stopped publishing public images,
+  # so we use RustFS, a MinIO-compatible drop-in (same ports, same S3 API).
+  s3:
+    image: rustfs/rustfs:1.0.3
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-fatoora}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-fatoora-secret}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "${S3_API_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - s3-data:/data
+
+  # Runs once: creates the bucket (retrying until S3 is up), then exits.
+  s3-init:
+    image: amazon/aws-cli:2.37.12
+    depends_on:
+      - s3
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-fatoora}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fatoora-secret}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${S3_BUCKET:-fatoora}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for i in $$(seq 1 30); do
+          aws --endpoint-url http://s3:9000 s3api head-bucket --bucket "$$S3_BUCKET" 2>/dev/null && echo "bucket exists" && exit 0
+          aws --endpoint-url http://s3:9000 s3 mb "s3://$$S3_BUCKET" && exit 0
+          sleep 2
+        done
+        exit 1
+    restart: "no"
+
+volumes:
+  postgres-data:
+  s3-data:
