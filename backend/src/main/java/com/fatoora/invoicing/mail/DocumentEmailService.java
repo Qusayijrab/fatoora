@@ -70,7 +70,8 @@ public class DocumentEmailService {
 
     public EmailResult emailInvoice(UUID id, EmailRequest request) {
         CurrentTenant tenant = TenantContext.require();
-        OutgoingMail outgoing = readTx.execute(status -> {
+        // Read-write: composing the email may create the invoice's payment link.
+        OutgoingMail outgoing = tx.execute(status -> {
             Invoice invoice = invoices.findWithLinesById(id).orElseThrow(() -> ApiException.notFound("Invoice not found"));
             if (invoice.getStatus() == InvoiceStatus.DRAFT || invoice.getStatus() == InvoiceStatus.VOID) {
                 throw ApiException.conflict("Only issued invoices can be emailed. Issue it first.");

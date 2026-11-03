@@ -35,6 +35,15 @@ spring:
     check-template-location: false
 
 app:
+  payments:
+    # mock = built-in test checkout (no real money); stripe = Stripe Checkout.
+    provider: ${PAYMENTS_PROVIDER:mock}
+    mock:
+      webhook-secret: ${MOCK_WEBHOOK_SECRET:local-mock-webhook-secret}
+    stripe:
+      secret-key: ${STRIPE_SECRET_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      api-base: https://api.stripe.com
   mail:
     from: ${MAIL_FROM:invoices@fatoora.local}
     public-url: ${PUBLIC_URL:http://localhost:3000}

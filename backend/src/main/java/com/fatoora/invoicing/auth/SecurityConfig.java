@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                         .requestMatchers("/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
                         .permitAll()
+                        // Public pages: an unguessable token, or a provider signature, is the permission.
+                        .requestMatchers("/api/v1/public/**", "/api/v1/webhooks/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(rs -> rs
                         .jwt(jwt -> {})

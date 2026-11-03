@@ -256,7 +256,7 @@ public class InvoiceService {
     }
 
     /** Loads with lines; a foreign or unknown id is "not found" (the tenant filter hides it). */
-    Invoice load(UUID id) {
+    public Invoice load(UUID id) {
         return invoices.findWithLinesById(id).orElseThrow(() -> ApiException.notFound("Invoice not found"));
     }
 
