@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getToken } from "./session";
 import type {
   Client,
+  ExchangeRate,
   Invoice,
   InvoiceSummary,
   Quote,
@@ -15,6 +16,7 @@ import type {
   Member,
   Organization,
   OrganizationDetails,
+  Overview,
   Page,
   Product,
   Summary,
@@ -149,3 +151,9 @@ export async function apiRaw(path: string): Promise<Response> {
 export const getRecurringList = () => api<Recurring[]>("/recurring");
 export const getRecurring = (id: string) => api<Recurring>(`/recurring/${encodeURIComponent(id)}`);
 export const getRecurringRuns = (id: string) => api<RecurringRun[]>(`/recurring/${encodeURIComponent(id)}/runs`);
+export const getOverview = () => api<Overview>("/dashboard/overview");
+export const getExchangeRates = () => api<ExchangeRate[]>("/exchange-rates");
+export const previewRate = (currency: string) =>
+  api<{ currency: string; baseCurrency: string; rate: string | null; source: string | null; date: string }>(
+    `/exchange-rates/preview?currency=${encodeURIComponent(currency)}`,
+  );

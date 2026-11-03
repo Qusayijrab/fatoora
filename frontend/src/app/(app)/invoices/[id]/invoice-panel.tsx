@@ -65,6 +65,13 @@ export function InvoicePanel({ invoice, isAdmin, extra }: { invoice: Invoice; is
               </>
             )}
           </dl>
+          {invoice.totalBase && invoice.baseCurrency !== invoice.currency && (
+            <p className="figures mt-3 border-t pt-3 text-xs text-muted-foreground" data-testid="frozen-rate">
+              1 {invoice.currency} = {invoice.exchangeRate} {invoice.baseCurrency}
+              {invoice.rateSource === "PEG" ? " (official peg)" : invoice.rateSource === "MANUAL" ? " (your rate)" : invoice.rateSource === "ECB" ? " (ECB)" : ""}
+              , frozen on issue. Counts as {formatMoney(invoice.totalBase)} in reports.
+            </p>
+          )}
           {open && (
             <div className="mt-4 grid gap-2">
               <PaymentDialog invoice={invoice} />

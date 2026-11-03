@@ -58,3 +58,24 @@ export async function saveOrganization(_prev: FormState, formData: FormData): Pr
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+export async function addExchangeRate(_prev: FormState, formData: FormData): Promise<FormState> {
+  const values = readForm(formData, ["currency", "rate", "effectiveDate"] as const);
+  try {
+    await api("/exchange-rates", { method: "POST", body: values });
+  } catch (e) {
+    return toFormState(e, echo(values));
+  }
+  revalidatePath("/settings/exchange-rates");
+  return { ok: true };
+}
+
+export async function deleteExchangeRate(id: string): Promise<FormState> {
+  try {
+    await api(`/exchange-rates/${encodeURIComponent(id)}`, { method: "DELETE" });
+  } catch (e) {
+    return toFormState(e);
+  }
+  revalidatePath("/settings/exchange-rates");
+  return { ok: true };
+}

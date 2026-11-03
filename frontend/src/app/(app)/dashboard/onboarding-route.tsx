@@ -30,7 +30,7 @@ export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
           {doneCount} of {steps.length} done
         </p>
       </div>
-      <ol className="grid divide-y @min-[62rem]:grid-cols-7 @min-[62rem]:divide-x @min-[62rem]:divide-y-0">
+      <ol className="grid divide-y @min-[52rem]:grid-cols-7 @min-[52rem]:divide-x @min-[52rem]:divide-y-0">
         {steps.map((step, i) => {
           const isNext = i === nextIndex;
           return (
@@ -39,11 +39,11 @@ export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
               data-testid={`route-${step.key}`}
               data-done={step.done}
               className={cn(
-                "relative flex gap-3 px-5 py-4 @min-[62rem]:flex-col @min-[62rem]:gap-2 @min-[62rem]:px-4 @min-[62rem]:py-5",
+                "relative flex gap-3 px-5 py-4 @min-[52rem]:flex-col @min-[52rem]:gap-2 @min-[52rem]:px-4 @min-[52rem]:py-5",
                 isNext && "bg-saffron/12",
               )}
             >
-              {isNext && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px] bg-saffron @min-[62rem]:inset-x-0 @min-[62rem]:bottom-auto @min-[62rem]:h-[3px] @min-[62rem]:w-auto" />}
+              {isNext && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px] bg-saffron @min-[52rem]:inset-x-0 @min-[52rem]:bottom-auto @min-[52rem]:h-[3px] @min-[52rem]:w-auto" />}
               <span
                 className={cn(
                   "figures grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold",

@@ -11,6 +11,7 @@ import {
   ScrollText,
   UsersRound,
   Contact,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -46,6 +47,7 @@ const SETTINGS: NavItem[] = [
   { href: "/settings/organization", label: "Organization", icon: Building2 },
   { href: "/settings/members", label: "Members", icon: UsersRound },
   { href: "/settings/tax-rates", label: "Tax rates", icon: Percent },
+  { href: "/settings/exchange-rates", label: "Exchange rates", icon: Coins },
   { href: "/settings/audit", label: "Audit log", icon: ScrollText },
 ];
 

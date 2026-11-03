@@ -191,6 +191,10 @@ export type Invoice = InvoiceSummary & {
   creditNotes: { id: string; number: string; total: Money; issueDate: string; reason: string | null }[];
   creditedInvoice: { id: string; number: string } | null;
   quoteId: string | null;
+  baseCurrency: string | null;
+  exchangeRate: string | null;
+  rateSource: string | null;
+  totalBase: Money | null;
   issuedAt: string | null;
   voidedAt: string | null;
   voidReason: string | null;
@@ -297,3 +301,21 @@ export function describeFrequency(f: Frequency, n: number): string {
   const unit = { WEEKLY: "week", MONTHLY: "month", QUARTERLY: "quarter", YEARLY: "year" }[f];
   return n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`;
 }
+
+export type Overview = {
+  baseCurrency: string;
+  outstanding: Money;
+  openInvoices: number;
+  overdue: Money;
+  overdueInvoices: number;
+  collectedThisMonth: Money;
+  invoicedThisMonth: Money;
+  drafts: number;
+  quotesAwaitingAnswer: number;
+  months: { month: string; invoiced: Money; collected: Money }[];
+  aging: { label: string; amount: Money; count: number }[];
+  topClients: { clientId: string; name: string; outstanding: Money; invoices: number }[];
+  activity: { summary: string; entityType: string; entityId: string; at: string }[];
+};
+
+export type ExchangeRate = { id: string; currency: string; baseCurrency: string; rate: string; effectiveDate: string };
