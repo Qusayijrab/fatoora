@@ -85,3 +85,12 @@ export async function createCreditNote(id: string, reason: string, lines: LineIn
   refresh(id);
   return { ok: true };
 }
+
+export async function getPaymentLink(id: string): Promise<FormState & { url?: string }> {
+  try {
+    const { url } = await api<{ url: string }>(`/invoices/${encodeURIComponent(id)}/payment-link`, { method: "POST" });
+    return { ok: true, url };
+  } catch (e) {
+    return toFormState(e);
+  }
+}

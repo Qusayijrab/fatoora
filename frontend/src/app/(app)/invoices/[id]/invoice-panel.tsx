@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CircleDollarSign, FileMinus } from "lucide-react";
+import { Ban, CircleDollarSign, Copy, ExternalLink, FileMinus, Link2 } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useActionState, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
 import type { FormState, Invoice, PaymentMethod } from "@/lib/types";
-import { createCreditNote, recordPayment, voidInvoice } from "../actions";
+import { createCreditNote, getPaymentLink, recordPayment, voidInvoice } from "../actions";
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "BANK_TRANSFER", label: "Bank transfer" },
@@ -75,6 +75,8 @@ export function InvoicePanel({ invoice, isAdmin, extra }: { invoice: Invoice; is
       )}
 
       {extra}
+
+      {isInvoice && open && <PaymentLinkBox invoiceId={invoice.id} />}
 
       {invoice.payments.length > 0 && (
         <section className="rounded-lg border bg-card p-5">
@@ -293,5 +295,56 @@ function VoidDialog({ invoice }: { invoice: Invoice }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The invoice's shareable payment page: anyone with the link can see and pay this one invoice. */
+function PaymentLinkBox({ invoiceId }: { invoiceId: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <section className="grid gap-2 rounded-lg border bg-card p-5">
+      <h2 className="text-sm font-semibold">Online payment</h2>
+      {url ? (
+        <>
+          <div className="flex gap-1.5">
+            <Input readOnly value={url} className="figures h-8 text-xs" aria-label="Payment link" onFocus={(e) => e.target.select()} />
+            <Button
+              size="icon-sm"
+              variant="outline"
+              aria-label="Copy payment link"
+              onClick={async () => {
+                await navigator.clipboard.writeText(url);
+                toast.success("Payment link copied");
+              }}
+            >
+              <Copy />
+            </Button>
+            <Button size="icon-sm" variant="outline" asChild aria-label="Open payment page">
+              <a href={url} target="_blank" rel="noopener">
+                <ExternalLink />
+              </a>
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Anyone with this link can view and pay this invoice only.</p>
+        </>
+      ) : (
+        <Button
+          variant="outline"
+          className="justify-start"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await getPaymentLink(invoiceId);
+              if (result.url) setUrl(result.url);
+              else toast.error(result.error ?? "Could not create the link");
+            })
+          }
+        >
+          <Link2 /> {pending ? "Creating…" : "Get payment link"}
+        </Button>
+      )}
+    </section>
   );
 }

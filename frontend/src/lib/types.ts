@@ -219,3 +219,29 @@ export type Quote = QuoteSummary & {
   rejectedAt: string | null;
   createdAt: string;
 };
+
+export type PublicInvoice = {
+  organizationName: string;
+  number: string;
+  status: InvoiceStatus;
+  clientName: string;
+  currency: string;
+  issueDate: string;
+  dueDate: string | null;
+  lines: Line[];
+  subtotal: Money;
+  tax: Money;
+  total: Money;
+  amountPaid: Money;
+  balanceDue: Money;
+  payable: boolean;
+  provider: string;
+};
+
+export type MockCheckout = {
+  organizationName: string;
+  invoiceNumber: string;
+  amount: Money;
+  status: "OPEN" | "COMPLETED" | "EXPIRED";
+  payToken: string;
+};
