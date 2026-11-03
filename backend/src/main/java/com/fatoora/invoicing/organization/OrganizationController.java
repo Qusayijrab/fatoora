@@ -3,10 +3,12 @@ package com.fatoora.invoicing.organization;
 import com.fatoora.invoicing.auth.CurrentUser;
 import com.fatoora.invoicing.organization.dto.CreateOrganizationRequest;
 import com.fatoora.invoicing.organization.dto.OrganizationResponse;
+import com.fatoora.invoicing.organization.dto.UpdateOrganizationRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,5 +45,11 @@ public class OrganizationController {
     @ResponseStatus(HttpStatus.CREATED)
     public OrganizationResponse create(@Valid @RequestBody CreateOrganizationRequest request) {
         return service.createForUser(CurrentUser.id(), request.name(), request.defaultCurrency(), request.timeZone());
+    }
+
+    /** Seller details, default currency and time zone. Owners and admins only. */
+    @PatchMapping("/current")
+    public OrganizationResponse updateCurrent(@Valid @RequestBody UpdateOrganizationRequest request) {
+        return service.updateCurrent(request);
     }
 }

@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
@@ -78,6 +79,10 @@ public abstract class IntegrationTest {
 
     protected ResultActions patchJson(String path, String token, String body) throws Exception {
         return perform(patch(path), token, body);
+    }
+
+    protected ResultActions putJson(String path, String token, String body) throws Exception {
+        return perform(put(path), token, body);
     }
 
     protected ResultActions deleteJson(String path, String token) throws Exception {

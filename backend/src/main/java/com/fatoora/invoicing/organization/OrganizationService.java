@@ -1,12 +1,15 @@
 package com.fatoora.invoicing.organization;
 
+import com.fatoora.invoicing.audit.AuditService;
 import com.fatoora.invoicing.auth.User;
 import com.fatoora.invoicing.auth.UserRepository;
 import com.fatoora.invoicing.common.error.ApiException;
 import com.fatoora.invoicing.common.tenancy.CurrentTenant;
 import com.fatoora.invoicing.common.tenancy.TenantContext;
 import com.fatoora.invoicing.organization.dto.OrganizationResponse;
+import com.fatoora.invoicing.organization.dto.UpdateOrganizationRequest;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,19 +20,24 @@ public class OrganizationService {
     private final OrganizationRepository organizations;
     private final MembershipRepository memberships;
     private final UserRepository users;
+    private final AuditService audit;
 
-    public OrganizationService(
-            OrganizationRepository organizations, MembershipRepository memberships, UserRepository users) {
+    public OrganizationService(OrganizationRepository organizations, MembershipRepository memberships,
+            UserRepository users, AuditService audit) {
         this.organizations = organizations;
         this.memberships = memberships;
         this.users = users;
+        this.audit = audit;
     }
 
     /** Creates an org and makes {@code owner} its first OWNER, in the caller's transaction. */
     @Transactional
     public Membership createWithOwner(User owner, String name, String defaultCurrency, String timeZone) {
         Organization org = organizations.save(new Organization(name.trim(), defaultCurrency, timeZone));
-        return memberships.save(new Membership(org, owner, Role.OWNER));
+        Membership membership = memberships.save(new Membership(org, owner, Role.OWNER));
+        audit.record(org.getId(), owner.getId(), "organization", org.getId(), "created",
+                "Organization " + org.getName() + " created", Map.of("currency", defaultCurrency));
+        return membership;
     }
 
     @Transactional
@@ -51,6 +59,16 @@ public class OrganizationService {
         CurrentTenant tenant = TenantContext.require();
         Organization org = organizations.findById(tenant.organizationId())
                 .orElseThrow(() -> ApiException.notFound("Organization not found"));
+        return OrganizationResponse.from(org, tenant.role());
+    }
+
+    @Transactional
+    public OrganizationResponse updateCurrent(UpdateOrganizationRequest request) {
+        CurrentTenant tenant = TenantContext.require().requireRole(Role.ADMIN);
+        Organization org = organizations.findById(tenant.organizationId())
+                .orElseThrow(() -> ApiException.notFound("Organization not found"));
+        org.update(request);
+        audit.record("organization", org.getId(), "updated", "Organization details updated", Map.of());
         return OrganizationResponse.from(org, tenant.role());
     }
 }
