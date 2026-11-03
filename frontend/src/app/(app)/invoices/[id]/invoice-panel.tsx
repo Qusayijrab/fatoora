@@ -35,7 +35,17 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
 const methodLabel = (m: PaymentMethod) => METHODS.find((x) => x.value === m)?.label ?? m;
 
 /** Money state and the actions that are legal right now. The backend re-checks every one. */
-export function InvoicePanel({ invoice, isAdmin, extra }: { invoice: Invoice; isAdmin: boolean; extra?: ReactNode }) {
+export function InvoicePanel({
+  invoice,
+  isAdmin,
+  extra,
+  history,
+}: {
+  invoice: Invoice;
+  isAdmin: boolean;
+  extra?: ReactNode;
+  history?: ReactNode;
+}) {
   const open = invoice.status === "ISSUED" || invoice.status === "PARTIALLY_PAID" || invoice.status === "OVERDUE";
   const isInvoice = invoice.kind === "INVOICE";
 
@@ -130,6 +140,8 @@ export function InvoicePanel({ invoice, isAdmin, extra }: { invoice: Invoice; is
           <p className="mt-1 text-muted-foreground">{invoice.voidReason}</p>
         </section>
       )}
+
+      {history}
 
       {isInvoice && isAdmin && open && <VoidDialog invoice={invoice} />}
     </aside>

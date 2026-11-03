@@ -63,7 +63,7 @@ test("invoice: draft, live totals, issue, part-pay, credit note to paid", async 
   await page.getByRole("dialog").getByRole("button", { name: "Issue credit note" }).click();
   await expect(page.getByTestId("balance-due")).toHaveText("JOD 0.000");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("PAID");
-  await expect(page.getByText("CN-2026-0001")).toBeVisible();
+  await expect(page.getByRole("link", { name: "CN-2026-0001" })).toBeVisible();
 });
 
 test("quote: send, accept, turn into an invoice draft", async ({ page }) => {

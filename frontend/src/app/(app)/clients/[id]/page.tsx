@@ -7,6 +7,7 @@ import { getClient } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { ClientForm } from "../client-form";
 import { ArchiveClientButton } from "./archive-button";
+import { PortalBox } from "./portal-box";
 
 export default function ClientPage({ params }: PageProps<"/clients/[id]">) {
   return (
@@ -39,8 +40,11 @@ async function ClientDetail({ params }: { params: Promise<{ id: string }> }) {
           actions={<ArchiveClientButton id={client.id} name={client.name} archived={client.archived} />}
         />
       </div>
-      <div className="rounded-lg border bg-card p-5 sm:p-7">
-        <ClientForm key={client.id} client={client} />
+      <div className="grid gap-6">
+        {!client.archived && <PortalBox clientId={client.id} />}
+        <div className="rounded-lg border bg-card p-5 sm:p-7">
+          <ClientForm key={client.id} client={client} />
+        </div>
       </div>
     </>
   );

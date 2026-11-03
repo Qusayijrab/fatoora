@@ -5,7 +5,8 @@ import { DocumentSheet } from "@/components/document-sheet";
 import { PageHeader } from "@/components/page-header";
 import { StatusStamp } from "@/components/status-stamp";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getEditorData, getInvoice, getMe } from "@/lib/api";
+import { History } from "@/components/history";
+import { getAudit, getEditorData, getInvoice, getMe } from "@/lib/api";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
 import { canManageMembers } from "@/lib/types";
 import { DraftInvoiceEditor } from "./draft-editor";
@@ -26,7 +27,7 @@ export default function InvoicePage({ params }: PageProps<"/invoices/[id]">) {
 
 async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [invoice, me] = await Promise.all([getInvoice(id), getMe()]);
+  const [invoice, me, history] = await Promise.all([getInvoice(id), getMe(), getAudit({ entityId: id, size: 30 })]);
   const isAdmin = canManageMembers(me.organization?.role);
   const isCreditNote = invoice.kind === "CREDIT_NOTE";
 
@@ -118,6 +119,7 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
               canEmail={invoice.status !== "VOID"}
             />
           }
+          history={<History entries={history.items} />}
         />
       </div>
     </>

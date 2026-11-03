@@ -3,6 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { getToken } from "./session";
 import type {
+  AuditEntry,
   Client,
   ExchangeRate,
   Invoice,
@@ -157,3 +158,8 @@ export const previewRate = (currency: string) =>
   api<{ currency: string; baseCurrency: string; rate: string | null; source: string | null; date: string }>(
     `/exchange-rates/preview?currency=${encodeURIComponent(currency)}`,
   );
+export const getAudit = (params: { entityId?: string; entityType?: string; page?: number; size?: number } = {}) => {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") q.set(k, String(v));
+  return api<Page<AuditEntry>>(`/audit-events${q.size ? `?${q}` : ""}`);
+};

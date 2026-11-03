@@ -47,3 +47,21 @@ export async function setClientArchived(id: string, archived: boolean): Promise<
   revalidatePath(`/clients/${id}`);
   return { ok: true };
 }
+
+export async function getPortalLink(id: string): Promise<FormState & { url?: string }> {
+  try {
+    const { url } = await api<{ url: string }>(`/clients/${encodeURIComponent(id)}/portal-link`, { method: "POST" });
+    return { ok: true, url };
+  } catch (e) {
+    return toFormState(e);
+  }
+}
+
+export async function revokePortalLink(id: string): Promise<FormState> {
+  try {
+    await api(`/clients/${encodeURIComponent(id)}/portal-link`, { method: "DELETE" });
+  } catch (e) {
+    return toFormState(e);
+  }
+  return { ok: true };
+}

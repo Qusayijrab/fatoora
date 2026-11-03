@@ -319,3 +319,33 @@ export type Overview = {
 };
 
 export type ExchangeRate = { id: string; currency: string; baseCurrency: string; rate: string; effectiveDate: string };
+
+export type AuditEntry = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  summary: string;
+  actorName: string | null;
+  data: string;
+  at: string;
+};
+
+export type PortalView = {
+  organizationName: string;
+  organizationEmail: string | null;
+  clientName: string;
+  outstanding: Money[];
+  invoices: {
+    id: string;
+    kind: "INVOICE" | "CREDIT_NOTE";
+    number: string;
+    status: InvoiceStatus;
+    issueDate: string;
+    dueDate: string | null;
+    total: Money;
+    balanceDue: Money;
+    payUrl: string | null;
+  }[];
+  quotes: { id: string; number: string; status: QuoteStatus; issueDate: string; validUntil: string | null; total: Money }[];
+};
