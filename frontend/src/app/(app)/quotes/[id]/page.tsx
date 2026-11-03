@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { DocumentDelivery } from "@/components/document-delivery";
 import { DocumentSheet } from "@/components/document-sheet";
 import { PageHeader } from "@/components/page-header";
 import { StatusStamp } from "@/components/status-stamp";
@@ -81,7 +82,10 @@ async function QuoteDetail({ params }: { params: Promise<{ id: string }> }) {
           notes={quote.notes}
           terms={quote.terms}
         />
-        <QuotePanel quote={quote} />
+        <div className="grid gap-4 lg:sticky lg:top-6">
+          <QuotePanel quote={quote} />
+          <DocumentDelivery kind="quotes" id={quote.id} number={quote.number} clientEmail={quote.billTo?.email ?? null} canEmail />
+        </div>
       </div>
     </>
   );

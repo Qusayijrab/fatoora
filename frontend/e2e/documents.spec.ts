@@ -38,6 +38,19 @@ test("invoice: draft, live totals, issue, part-pay, credit note to paid", async 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("INV-2026-0001");
   await expect(page.getByTestId("balance-due")).toHaveText("JOD 348.000");
 
+  // The PDF comes through the Next.js server (it adds the token); the browser never sees it.
+  const pdfHref = await page.getByRole("link", { name: "Download PDF" }).getAttribute("href");
+  const pdf = await page.request.get(pdfHref!);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+
+  // Email it (the client has no email on file, so type one). Mailpit catches it locally.
+  await page.getByRole("button", { name: "Email to client" }).click();
+  await page.getByRole("dialog").getByLabel("To").fill("accounts@petra.example");
+  await page.getByRole("dialog").getByRole("button", { name: "Send email" }).click();
+  await expect(page.getByText("Sent to accounts@petra.example")).toBeVisible();
+
   await page.getByRole("button", { name: "Record payment" }).click();
   await page.getByRole("dialog").getByLabel("Amount (JOD)").fill("100");
   await page.getByRole("dialog").getByRole("button", { name: "Record payment" }).click();

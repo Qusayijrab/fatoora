@@ -1,6 +1,6 @@
 "use client";
 
-import { Stamp, Trash2 } from "lucide-react";
+import { Eye, Stamp, Trash2 } from "lucide-react";
 import { ConfirmAction } from "@/components/confirm-action";
 import { DocumentEditor, type EditorData } from "@/components/document-editor";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,11 @@ export function DraftInvoiceEditor({ invoice, data }: { invoice: Invoice; data: 
             confirmLabel="Delete"
             action={() => deleteInvoice(invoice.id)}
           />
+          <Button asChild type="button" variant="ghost">
+            <a href={`/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener">
+              <Eye /> Preview PDF
+            </a>
+          </Button>
           <ConfirmAction
             trigger={
               <Button type="button" variant="outline">

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ReceiptText, Send, Trash2, X } from "lucide-react";
+import { Check, Eye, ReceiptText, Send, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -39,6 +39,11 @@ export function QuoteDraftEditor({ quote, data }: { quote: Quote; data: EditorDa
             confirmLabel="Delete"
             action={() => deleteQuote(quote.id)}
           />
+          <Button asChild type="button" variant="ghost">
+            <a href={`/quotes/${quote.id}/pdf`} target="_blank" rel="noopener">
+              <Eye /> Preview PDF
+            </a>
+          </Button>
           <ConfirmAction
             trigger={
               <Button type="button" variant="outline">
@@ -70,7 +75,7 @@ export function QuotePanel({ quote }: { quote: Quote }) {
   }
 
   return (
-    <aside className="grid gap-4 lg:sticky lg:top-6">
+    <aside className="grid gap-4">
       <section className="rounded-lg border bg-card p-5">
         <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Quoted</p>
         <p className="figures mt-1 text-2xl font-semibold">{formatMoney(quote.total)}</p>

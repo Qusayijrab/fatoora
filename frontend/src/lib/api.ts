@@ -136,3 +136,10 @@ export async function getEditorData() {
     taxRates,
   };
 }
+
+/** Raw backend response for binary downloads (PDFs). Caller checks res.ok. */
+export async function apiRaw(path: string): Promise<Response> {
+  const token = await getToken();
+  if (!token) redirect("/login");
+  return fetch(`${API_URL}/api/v1${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+}

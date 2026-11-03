@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { DocumentDelivery } from "@/components/document-delivery";
 import { DocumentSheet } from "@/components/document-sheet";
 import { PageHeader } from "@/components/page-header";
 import { StatusStamp } from "@/components/status-stamp";
@@ -105,7 +106,19 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
           notes={invoice.notes}
           terms={invoice.terms}
         />
-        <InvoicePanel invoice={invoice} isAdmin={isAdmin} />
+        <InvoicePanel
+          invoice={invoice}
+          isAdmin={isAdmin}
+          extra={
+            <DocumentDelivery
+              kind="invoices"
+              id={invoice.id}
+              number={invoice.number}
+              clientEmail={invoice.billTo?.email ?? null}
+              canEmail={invoice.status !== "VOID"}
+            />
+          }
+        />
       </div>
     </>
   );
