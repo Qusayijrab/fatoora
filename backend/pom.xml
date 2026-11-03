@@ -18,6 +18,7 @@
 		<springdoc.version>3.2.0</springdoc.version>
 		<openhtmltopdf.version>1.1.97</openhtmltopdf.version>
 		<awssdk.version>2.56.0</awssdk.version>
+		<shedlock.version>7.10.1</shedlock.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -83,6 +84,17 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
+		</dependency>
+		<!-- Only one app instance runs each scheduled job at a time -->
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-spring</artifactId>
+			<version>${shedlock.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-provider-jdbc-template</artifactId>
+			<version>${shedlock.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>

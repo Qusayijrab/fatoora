@@ -35,6 +35,8 @@ spring:
     check-template-location: false
 
 app:
+  jobs:
+    enabled: ${JOBS_ENABLED:true}
   payments:
     # mock = built-in test checkout (no real money); stripe = Stripe Checkout.
     provider: ${PAYMENTS_PROVIDER:mock}

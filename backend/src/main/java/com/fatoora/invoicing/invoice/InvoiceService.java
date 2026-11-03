@@ -112,19 +112,26 @@ public class InvoiceService {
         return toResponse(invoice);
     }
 
-    /** Used by quote conversion: the quote's lines become an invoice draft. */
+    /** Used by quote conversion: the quote's lines become an invoice draft dated today. */
     @Transactional
     public Invoice createDraftFromLines(Client client, String currency, String notes, String terms,
             List<CalculatedLine> lines, UUID quoteId) {
-        Organization org = organizations.currentEntity();
-        LocalDate issueDate = organizations.today(org, clock);
-        Invoice invoice = Invoice.draft(client, currency, issueDate, issueDate.plusDays(DEFAULT_TERMS_DAYS));
-        invoice.edit(client, currency, issueDate, issueDate.plusDays(DEFAULT_TERMS_DAYS), notes, terms, lines);
+        LocalDate issueDate = organizations.today(organizations.currentEntity(), clock);
+        Invoice invoice = createDraft(client, currency, notes, terms, lines, issueDate, issueDate.plusDays(DEFAULT_TERMS_DAYS));
         invoice.linkQuote(quoteId);
-        invoices.save(invoice);
         audit.record("invoice", invoice.getId(), "created", "Draft invoice created from a quote",
                 Map.of("quoteId", quoteId.toString(), "total", invoice.getTotal().toString()));
         return invoice;
+    }
+
+    /** Used by recurring invoices: a draft for a given period date. */
+    @Transactional
+    public Invoice createDraft(Client client, String currency, String notes, String terms, List<CalculatedLine> lines,
+            LocalDate issueDate, LocalDate dueDate) {
+        Invoice invoice = Invoice.draft(client, currency, issueDate, dueDate);
+        invoice.edit(client, currency, issueDate, dueDate, notes, terms, lines);
+        // Flushed now: callers reference the new row from plain SQL in the same transaction.
+        return invoices.saveAndFlush(invoice);
     }
 
     @Transactional

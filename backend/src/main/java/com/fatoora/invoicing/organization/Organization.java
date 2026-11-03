@@ -51,6 +51,14 @@ public class Organization extends BaseEntity {
     @Column(length = 2)
     private String country;
 
+    @Column(name = "reminders_enabled", nullable = false)
+    private boolean remindersEnabled = true;
+
+    /** Days after the due date on which a reminder email goes out, e.g. {1, 7, 14}. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "reminder_days", nullable = false, columnDefinition = "int[]")
+    private Integer[] reminderDays = {1, 7, 14};
+
     protected Organization() {}
 
     public Organization(String name, String defaultCurrency, String timeZone) {
@@ -71,6 +79,20 @@ public class Organization extends BaseEntity {
         this.addressLine2 = Strings.clean(r.addressLine2());
         this.city = Strings.clean(r.city());
         this.country = Strings.upper(r.country());
+        if (r.remindersEnabled() != null) {
+            this.remindersEnabled = r.remindersEnabled();
+        }
+        if (r.reminderDays() != null) {
+            this.reminderDays = r.reminderDays().stream().distinct().sorted().toArray(Integer[]::new);
+        }
+    }
+
+    public boolean isRemindersEnabled() {
+        return remindersEnabled;
+    }
+
+    public java.util.List<Integer> getReminderDays() {
+        return java.util.List.of(reminderDays);
     }
 
     public String getName() {

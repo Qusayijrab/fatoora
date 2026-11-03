@@ -18,11 +18,13 @@ public record OrganizationResponse(
         String addressLine1,
         String addressLine2,
         String city,
-        String country) {
+        String country,
+        boolean remindersEnabled,
+        java.util.List<Integer> reminderDays) {
 
     public static OrganizationResponse from(Organization org, Role role) {
         return new OrganizationResponse(org.getId(), org.getName(), org.getDefaultCurrency(), org.getTimeZone(), role,
                 org.getLegalName(), org.getTaxId(), org.getEmail(), org.getPhone(), org.getAddressLine1(),
-                org.getAddressLine2(), org.getCity(), org.getCountry());
+                org.getAddressLine2(), org.getCity(), org.getCountry(), org.isRemindersEnabled(), org.getReminderDays());
     }
 }

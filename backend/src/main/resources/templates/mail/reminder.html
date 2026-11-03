@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- Friendly overdue reminder. Inline styles and tables for email clients. -->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+  <title th:text="${'Reminder ' + number}">Reminder</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f5f3;font-family:Segoe UI,Tahoma,Arial,sans-serif;color:#1b2a25;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f5f3;padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:6px;overflow:hidden;border:1px solid #dfe6e2;">
+      <tr><td style="background:#173f35;padding:18px 28px;">
+        <span style="color:#f1f5f2;font-size:16px;font-weight:600;" th:text="${orgName}">Seller</span>
+      </td></tr>
+      <tr><td style="height:4px;background:#e8b33a;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:28px;">
+        <p style="margin:0 0 14px;font-size:15px;" th:text="${'Hello ' + clientName + ','}">Hello,</p>
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.55;">
+          A friendly reminder that invoice <strong th:text="${number}">INV-2026-0001</strong>
+          was due on <span th:text="${dueDate}">1 Nov 2026</span>
+          (<span th:text="${daysOverdue}">7</span> days ago) and still shows a balance.
+        </p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dfe6e2;border-bottom:1px solid #dfe6e2;margin:0 0 22px;">
+          <tr>
+            <td style="padding:12px 0;font-size:14px;color:#5e6e69;">Balance due</td>
+            <td style="padding:12px 0;font-size:16px;text-align:right;font-weight:700;" th:text="${balance}">JOD 0.000</td>
+          </tr>
+        </table>
+        <p th:if="${payUrl != null}" style="margin:0 0 24px;">
+          <a th:href="${payUrl}" style="display:inline-block;background:#e8b33a;color:#3a2a06;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:5px;font-size:15px;">Pay online now</a>
+        </p>
+        <p style="margin:0;font-size:13px;color:#5e6e69;line-height:1.5;">
+          If you have already paid, thank you, and please ignore this email. The invoice is attached.
+        </p>
+        <p dir="rtl" style="margin:18px 0 0;font-size:13px;color:#5e6e69;line-height:1.6;text-align:right;">
+          تذكير ودي بأن هذه الفاتورة متأخرة السداد. إذا قمتم بالدفع، نشكركم ونرجو تجاهل هذه الرسالة.
+        </p>
+      </td></tr>
+    </table>
+    <p style="font-size:11px;color:#8a9893;margin:14px 0 0;">Sent with Fatoora</p>
+  </td></tr>
+</table>
+</body>
+</html>

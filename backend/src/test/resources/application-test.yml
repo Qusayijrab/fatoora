@@ -4,6 +4,9 @@ spring:
     locations: classpath:db/migration,classpath:db/testmigration
 
 app:
+  # Tests drive JobsService directly with a chosen "now"; no background timers.
+  jobs:
+    enabled: false
   storage:
     type: memory
   jwt:
