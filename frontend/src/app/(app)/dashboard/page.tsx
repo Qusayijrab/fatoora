@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getMe, getMembers } from "@/lib/api";
+import { getMe, getSummary } from "@/lib/api";
 import { OnboardingRoute, type RouteStep } from "./onboarding-route";
 
 export const metadata = { title: "Dashboard" };
@@ -43,15 +43,16 @@ async function Dashboard() {
     );
   }
 
-  const members = await getMembers();
+  const summary = await getSummary();
+  const count = (key: string) => summary[key] ?? 0;
   const steps: RouteStep[] = [
     { key: "company", title: "Set up your company", detail: `${org.name}, ${org.defaultCurrency}`, href: "/settings/organization", cta: "Review", done: true },
-    { key: "team", title: "Invite your team", detail: "Add a bookkeeper or partner.", href: "/settings/members", cta: "Add member", done: members.length > 1 },
-    { key: "client", title: "Add a client", detail: "Who you bill, with tax id and address.", href: "/clients", cta: "Add client", done: false },
-    { key: "product", title: "Add a product", detail: "What you sell, priced once.", href: "/products", cta: "Add product", done: false },
-    { key: "quote", title: "Send a quote", detail: "Agree the price before the work.", href: "/quotes", cta: "New quote", done: false },
-    { key: "invoice", title: "Issue an invoice", detail: "Numbered, PDF, emailed.", href: "/invoices", cta: "New invoice", done: false },
-    { key: "paid", title: "Get paid", detail: "Online by payment link.", href: "/invoices", cta: "See invoices", done: false },
+    { key: "team", title: "Invite your team", detail: "Add a bookkeeper or partner.", href: "/settings/members", cta: "Add member", done: count("members") > 1 },
+    { key: "client", title: "Add a client", detail: "Who you bill, with tax id and address.", href: "/clients/new", cta: "Add client", done: count("clients") > 0 },
+    { key: "product", title: "Add a product", detail: "What you sell, priced once.", href: "/products/new", cta: "Add product", done: count("products") > 0 },
+    { key: "quote", title: "Send a quote", detail: "Agree the price before the work.", href: "/quotes/new", cta: "New quote", done: count("quotesSent") > 0 },
+    { key: "invoice", title: "Issue an invoice", detail: "Numbered, PDF, emailed.", href: "/invoices/new", cta: "New invoice", done: count("invoicesIssued") > 0 },
+    { key: "paid", title: "Get paid", detail: "Online by payment link.", href: "/invoices", cta: "See invoices", done: count("payments") > 0 },
   ];
 
   return (

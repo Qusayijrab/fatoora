@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { FormField } from "@/components/form-field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,15 +16,16 @@ export function OrganizationFields({
   errors?: Record<string, string>;
   nameField?: string;
 }) {
+  const uid = useId();
   return (
     <>
-      <FormField id={nameField} label="Business name" error={errors?.[nameField]}>
-        <Input id={nameField} name={nameField} required className="h-10" defaultValue={values?.[nameField]} />
+      <FormField id={`${nameField}-${uid}`} label="Business name" error={errors?.[nameField]}>
+        <Input id={`${nameField}-${uid}`} name={nameField} required className="h-10" defaultValue={values?.[nameField]} />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="defaultCurrency" label="Currency" error={errors?.defaultCurrency}>
+        <FormField id={`defaultCurrency-${uid}`} label="Currency" error={errors?.defaultCurrency}>
           <Select name="defaultCurrency" defaultValue={values?.defaultCurrency ?? "JOD"}>
-            <SelectTrigger id="defaultCurrency" className="h-10! w-full">
+            <SelectTrigger id={`defaultCurrency-${uid}`} className="h-10! w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -41,9 +43,9 @@ export function OrganizationFields({
             </SelectContent>
           </Select>
         </FormField>
-        <FormField id="timeZone" label="Time zone" error={errors?.timeZone}>
+        <FormField id={`timeZone-${uid}`} label="Time zone" error={errors?.timeZone}>
           <Input
-            id="timeZone"
+            id={`timeZone-${uid}`}
             name="timeZone"
             required
             className="h-10"

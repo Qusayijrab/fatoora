@@ -2,7 +2,18 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { getToken } from "./session";
-import type { FormState, Me, Member, Organization } from "./types";
+import type {
+  Client,
+  FormState,
+  Me,
+  Member,
+  Organization,
+  OrganizationDetails,
+  Page,
+  Product,
+  Summary,
+  TaxRate,
+} from "./types";
 
 const API_URL = process.env.API_URL ?? "http://localhost:8080";
 
@@ -18,7 +29,7 @@ export class ApiError extends Error {
 }
 
 type Options = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   /** Send the session token? Off for login/register. */
   auth?: boolean;
@@ -67,3 +78,24 @@ export function toFormState(e: unknown, values?: Record<string, string>): FormSt
 export const getMe = () => api<Me>("/me");
 export const getMyOrganizations = () => api<Organization[]>("/organizations");
 export const getMembers = () => api<Member[]>("/members");
+export const getCurrentOrganization = () => api<OrganizationDetails>("/organizations/current");
+export const getSummary = () => api<Summary>("/dashboard/summary");
+export const getTaxRates = (includeArchived = false) =>
+  api<TaxRate[]>(`/tax-rates${includeArchived ? "?includeArchived=true" : ""}`);
+
+function listQuery(params: { q?: string; includeArchived?: boolean; page?: number; size?: number }) {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.includeArchived) search.set("includeArchived", "true");
+  if (params.page) search.set("page", String(params.page));
+  if (params.size) search.set("size", String(params.size));
+  const s = search.toString();
+  return s ? `?${s}` : "";
+}
+
+export const getClients = (params: { q?: string; includeArchived?: boolean; page?: number; size?: number } = {}) =>
+  api<Page<Client>>(`/clients${listQuery(params)}`);
+export const getClient = (id: string) => api<Client>(`/clients/${encodeURIComponent(id)}`);
+export const getProducts = (params: { q?: string; includeArchived?: boolean; page?: number; size?: number } = {}) =>
+  api<Page<Product>>(`/products${listQuery(params)}`);
+export const getProduct = (id: string) => api<Product>(`/products/${encodeURIComponent(id)}`);

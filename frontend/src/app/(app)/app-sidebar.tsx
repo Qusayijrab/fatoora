@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -63,8 +63,23 @@ export function AppSidebar({ header, footer }: { header: ReactNode; footer: Reac
   );
 }
 
+/**
+ * On dynamic routes the pathname is request data, so the "active" highlight streams in
+ * behind <Suspense>; the fallback renders the same links without a highlight.
+ */
 function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
-  const pathname = usePathname();
+  return (
+    <Suspense fallback={<NavGroupView label={label} items={items} pathname={null} />}>
+      <ActiveNavGroup label={label} items={items} />
+    </Suspense>
+  );
+}
+
+function ActiveNavGroup({ label, items }: { label: string; items: NavItem[] }) {
+  return <NavGroupView label={label} items={items} pathname={usePathname()} />;
+}
+
+function NavGroupView({ label, items, pathname }: { label: string; items: NavItem[]; pathname: string | null }) {
   const { setOpenMobile } = useSidebar();
 
   return (
@@ -75,7 +90,7 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
       <SidebarGroupContent>
         <SidebarMenu className="gap-0.5">
           {items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = !!pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`));
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton

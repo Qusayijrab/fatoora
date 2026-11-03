@@ -45,3 +45,55 @@ export type FormState = {
 export function canManageMembers(role: Role | undefined): boolean {
   return role === "OWNER" || role === "ADMIN";
 }
+
+/** Money from the API: amount is a decimal string ("1250.500"), never a JS float. */
+export type Money = { amount: string; currency: string; amountMinor: number };
+
+export type Page<T> = { items: T[]; page: number; size: number; total: number };
+
+export type OrganizationDetails = Organization & {
+  legalName: string | null;
+  taxId: string | null;
+  email: string | null;
+  phone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  country: string | null;
+};
+
+export type Client = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  taxId: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+  country: string | null;
+  currency: string | null;
+  notes: string | null;
+  archived: boolean;
+  createdAt: string;
+};
+
+export type TaxRate = { id: string; name: string; rate: string; isDefault: boolean; archived: boolean };
+
+export type Product = {
+  id: string;
+  name: string;
+  description: string | null;
+  sku: string | null;
+  unit: string;
+  unitPrice: Money;
+  taxRate: TaxRate | null;
+  archived: boolean;
+};
+
+export type Summary = Record<string, number>;
+
+/** Sentinel for "nothing selected" in optional selects (Radix Select can't use ""). */
+export const NONE_VALUE = "__none__";

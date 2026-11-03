@@ -1,21 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
-
-const PASSWORD = "correct-horse-battery";
-
-function uniqueEmail(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-}
-
-async function register(page: Page, { name, email, org }: { name: string; email: string; org: string }) {
-  await page.goto("/register");
-  await page.getByLabel("Your name").fill(name);
-  await page.getByRole("textbox", { name: "Email" }).fill(email);
-  await page.getByLabel("Password (8+ characters)").fill(PASSWORD);
-  await page.getByLabel("Business name").fill(org);
-  await page.getByLabel("Time zone").fill("Asia/Amman");
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
-}
+import { expect, test } from "@playwright/test";
+import { PASSWORD, register, uniqueEmail } from "./helpers";
 
 test("landing page lets a visitor stamp the example invoice", async ({ page }) => {
   await page.goto("/");
@@ -32,7 +16,7 @@ test("protected pages redirect to login when signed out", async ({ page }) => {
 test("wrong password shows an error", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Email" }).fill(uniqueEmail("nobody"));
-  await page.getByLabel("Password").fill("wrong-password");
+  await page.getByLabel("Password", { exact: true }).fill("wrong-password");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Invalid email or password" })).toBeVisible();
 });
@@ -77,7 +61,7 @@ test("register, see dashboard, add a member, log out, log back in", async ({ bro
   await page.getByRole("menuitem", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.getByRole("textbox", { name: "Email" }).fill(ownerEmail);
-  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByTestId("org-name")).toHaveText("Acme Trading");
