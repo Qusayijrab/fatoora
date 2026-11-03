@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { getToken } from "./session";
 import type {
   Client,
+  Invoice,
+  InvoiceSummary,
+  Quote,
+  QuoteSummary,
   FormState,
   Me,
   Member,
@@ -99,3 +103,36 @@ export const getClient = (id: string) => api<Client>(`/clients/${encodeURICompon
 export const getProducts = (params: { q?: string; includeArchived?: boolean; page?: number; size?: number } = {}) =>
   api<Page<Product>>(`/products${listQuery(params)}`);
 export const getProduct = (id: string) => api<Product>(`/products/${encodeURIComponent(id)}`);
+
+type DocListParams = { status?: string; q?: string; clientId?: string; kind?: string; page?: number; size?: number };
+
+function docQuery(params: DocListParams) {
+  const search = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") search.set(k, String(v));
+  const s = search.toString();
+  return s ? `?${s}` : "";
+}
+
+export const getInvoices = (params: DocListParams = {}) => api<Page<InvoiceSummary>>(`/invoices${docQuery(params)}`);
+export const getInvoice = (id: string) => api<Invoice>(`/invoices/${encodeURIComponent(id)}`);
+export const getQuotes = (params: DocListParams = {}) => api<Page<QuoteSummary>>(`/quotes${docQuery(params)}`);
+export const getQuote = (id: string) => api<Quote>(`/quotes/${encodeURIComponent(id)}`);
+
+/** Everything the document editor needs to offer pickers. */
+export async function getEditorData() {
+  const [me, clients, products, taxRates] = await Promise.all([
+    getMe(),
+    getClients({ size: 100 }),
+    getProducts({ size: 100 }),
+    getTaxRates(),
+  ]);
+  // "Today" in the organization's time zone, not the server's.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: me.organization?.timeZone ?? "UTC" }).format(new Date());
+  return {
+    today,
+    orgCurrency: me.organization?.defaultCurrency ?? "JOD",
+    clients: clients.items,
+    products: products.items,
+    taxRates,
+  };
+}

@@ -97,3 +97,125 @@ export type Summary = Record<string, number>;
 
 /** Sentinel for "nothing selected" in optional selects (Radix Select can't use ""). */
 export const NONE_VALUE = "__none__";
+
+export type InvoiceStatus = "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "VOID";
+export type QuoteStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+export type PaymentMethod = "CASH" | "BANK_TRANSFER" | "CHEQUE" | "CARD" | "ONLINE" | "OTHER";
+
+export type ClientRef = { id: string; name: string };
+
+export type Party = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  taxId: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+  country: string | null;
+};
+
+export type Line = {
+  id: string;
+  position: number;
+  productId: string | null;
+  description: string;
+  quantity: string;
+  unit: string | null;
+  unitPrice: Money;
+  taxRateId: string | null;
+  taxRate: string;
+  subtotal: Money;
+  tax: Money;
+  total: Money;
+};
+
+/** What the editor sends: decimal strings only. */
+export type LineInput = {
+  productId: string | null;
+  description: string;
+  quantity: string;
+  unit: string | null;
+  unitPrice: string;
+  taxRateId: string | null;
+};
+
+export type DocumentInput = {
+  clientId: string;
+  currency: string;
+  issueDate: string;
+  dueDate?: string | null;
+  validUntil?: string | null;
+  notes: string | null;
+  terms: string | null;
+  lines: LineInput[];
+};
+
+export type Payment = {
+  id: string;
+  amount: Money;
+  method: PaymentMethod;
+  paidOn: string;
+  reference: string | null;
+  provider: string | null;
+};
+
+export type InvoiceSummary = {
+  id: string;
+  kind: "INVOICE" | "CREDIT_NOTE";
+  number: string | null;
+  status: InvoiceStatus;
+  client: ClientRef;
+  currency: string;
+  issueDate: string;
+  dueDate: string | null;
+  total: Money;
+  balanceDue: Money;
+};
+
+export type Invoice = InvoiceSummary & {
+  billTo: Party | null;
+  seller: Party | null;
+  notes: string | null;
+  terms: string | null;
+  lines: Line[];
+  subtotal: Money;
+  tax: Money;
+  amountPaid: Money;
+  amountCredited: Money;
+  payments: Payment[];
+  creditNotes: { id: string; number: string; total: Money; issueDate: string; reason: string | null }[];
+  creditedInvoice: { id: string; number: string } | null;
+  quoteId: string | null;
+  issuedAt: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  createdAt: string;
+};
+
+export type QuoteSummary = {
+  id: string;
+  number: string | null;
+  status: QuoteStatus;
+  client: ClientRef;
+  currency: string;
+  issueDate: string;
+  validUntil: string | null;
+  total: Money;
+  convertedInvoiceId: string | null;
+};
+
+export type Quote = QuoteSummary & {
+  billTo: Party | null;
+  notes: string | null;
+  terms: string | null;
+  lines: Line[];
+  subtotal: Money;
+  tax: Money;
+  sentAt: string | null;
+  acceptedAt: string | null;
+  rejectedAt: string | null;
+  createdAt: string;
+};
