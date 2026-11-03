@@ -1,0 +1,8 @@
+spring:
+  flyway:
+    # Real migrations + a test-only table used to prove @TenantId filtering works.
+    locations: classpath:db/migration,classpath:db/testmigration
+
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-0123
