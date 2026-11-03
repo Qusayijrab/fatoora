@@ -69,6 +69,26 @@ public abstract class IntegrationTest {
         return UUID.fromString(read(postJson("/api/v1/members", admin.token(), body).andExpect(status().isCreated()), "$.id"));
     }
 
+    /** Creates a client in the account's organization and returns its id. */
+    protected String createClient(Account account, String name) throws Exception {
+        return read(postJson("/api/v1/clients", account.token(), """
+                {"name":"%s","email":"billing@example.com","taxId":"TX-1","city":"Amman","country":"JO"}"""
+                .formatted(name)).andExpect(status().isCreated()), "$.id");
+    }
+
+    /** One line: description, quantity, unit price, optional tax rate id. */
+    protected static String line(String description, String quantity, String unitPrice, String taxRateId) {
+        return """
+                {"description":"%s","quantity":"%s","unitPrice":"%s","taxRateId":%s}"""
+                .formatted(description, quantity, unitPrice, taxRateId == null ? "null" : "\"" + taxRateId + "\"");
+    }
+
+    protected static String document(String clientId, String currency, String... lines) {
+        return """
+                {"clientId":"%s","currency":"%s","issueDate":"2026-11-03","lines":[%s]}"""
+                .formatted(clientId, currency, String.join(",", lines));
+    }
+
     protected ResultActions getJson(String path, String token) throws Exception {
         return perform(get(path), token, null);
     }

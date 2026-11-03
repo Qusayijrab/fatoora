@@ -71,4 +71,16 @@ public class OrganizationService {
         audit.record("organization", org.getId(), "updated", "Organization details updated", Map.of());
         return OrganizationResponse.from(org, tenant.role());
     }
+
+    /** The current organization entity (time zone, seller details), for document services. */
+    @Transactional(readOnly = true)
+    public Organization currentEntity() {
+        return organizations.findById(TenantContext.require().organizationId())
+                .orElseThrow(() -> ApiException.notFound("Organization not found"));
+    }
+
+    /** "Today" in the organization's own time zone: due dates and overdue use this, not the server clock. */
+    public java.time.LocalDate today(Organization org, java.time.Clock clock) {
+        return java.time.LocalDate.now(clock.withZone(java.time.ZoneId.of(org.getTimeZone())));
+    }
 }
