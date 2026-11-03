@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: fatoora
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fatoora}
+    username: ${DB_USERNAME:fatoora}
+    password: ${DB_PASSWORD:fatoora}
+  jpa:
+    # Never let Hibernate change the schema; Flyway owns it. "validate" fails fast
+    # on startup if entities and tables disagree.
+    hibernate:
+      ddl-auto: validate
+    # Keep DB sessions short: one per transaction, not one per HTTP request.
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+app:
+  jwt:
+    issuer: fatoora
+    # Local default only. Set JWT_SECRET (32+ chars) in every real environment.
+    secret: ${JWT_SECRET:local-dev-only-secret-change-me-0123456789}
+    ttl: PT1H
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
