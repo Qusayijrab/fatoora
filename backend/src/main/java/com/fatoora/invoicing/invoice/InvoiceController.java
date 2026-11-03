@@ -7,9 +7,18 @@ import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceResponse;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceSummary;
 import com.fatoora.invoicing.invoice.InvoiceDtos.PaymentRequest;
 import com.fatoora.invoicing.invoice.InvoiceDtos.VoidRequest;
+import com.fatoora.invoicing.mail.DocumentEmailService;
+import com.fatoora.invoicing.mail.DocumentEmailService.EmailRequest;
+import com.fatoora.invoicing.mail.DocumentEmailService.EmailResult;
+import com.fatoora.invoicing.pdf.DocumentPdfService;
+import com.fatoora.invoicing.pdf.DocumentPdfService.PdfFile;
 import jakarta.validation.Valid;
 import java.util.UUID;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,9 +36,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class InvoiceController {
 
     private final InvoiceService service;
+    private final DocumentPdfService pdfs;
+    private final DocumentEmailService emails;
 
-    public InvoiceController(InvoiceService service) {
+    public InvoiceController(InvoiceService service, DocumentPdfService pdfs, DocumentEmailService emails) {
         this.service = service;
+        this.pdfs = pdfs;
+        this.emails = emails;
     }
 
     @GetMapping
@@ -83,5 +96,23 @@ public class InvoiceController {
     @PostMapping("/{id}/credit-notes")
     public InvoiceResponse creditNote(@PathVariable UUID id, @Valid @RequestBody CreditNoteRequest request) {
         return service.createCreditNote(id, request);
+    }
+
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> pdf(@PathVariable UUID id) {
+        return pdfResponse(pdfs.invoicePdf(id));
+    }
+
+    /** Emails the PDF to the client (or to {@code to}). Body is optional. */
+    @PostMapping("/{id}/email")
+    public EmailResult email(@PathVariable UUID id, @Valid @RequestBody(required = false) EmailRequest request) {
+        return emails.emailInvoice(id, request == null ? new EmailRequest(null, null) : request);
+    }
+
+    static ResponseEntity<byte[]> pdfResponse(PdfFile file) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().filename(file.filename()).build().toString())
+                .body(file.content());
     }
 }

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!--
+  Email for an invoice, credit note or quote. Table layout and inline styles, because
+  email clients ignore most modern CSS. The PDF is attached.
+-->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+  <title th:text="${kind + ' ' + number}">Invoice</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f5f3;font-family:Segoe UI,Tahoma,Arial,sans-serif;color:#1b2a25;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f5f3;padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:6px;overflow:hidden;border:1px solid #dfe6e2;">
+      <tr><td style="background:#173f35;padding:18px 28px;">
+        <span style="color:#f1f5f2;font-size:16px;font-weight:600;" th:text="${orgName}">Seller</span>
+      </td></tr>
+      <tr><td style="height:4px;background:#e8b33a;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:28px;">
+        <p style="margin:0 0 14px;font-size:15px;">
+          <span th:text="${'Hello ' + clientName + ','}">Hello,</span>
+        </p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.55;" th:if="${message != null}" th:text="${message}">Message</p>
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.55;">
+          Please find <span th:text="${kind}">invoice</span>
+          <strong th:text="${number}">INV-2026-0001</strong> attached as a PDF.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dfe6e2;border-bottom:1px solid #dfe6e2;margin:0 0 22px;">
+          <tr>
+            <td style="padding:12px 0;font-size:14px;color:#5e6e69;">Total</td>
+            <td style="padding:12px 0;font-size:14px;text-align:right;font-weight:600;" th:text="${total}">JOD 0.000</td>
+          </tr>
+          <tr th:if="${balance != null and !paid}">
+            <td style="padding:0 0 12px;font-size:14px;color:#5e6e69;">Balance due</td>
+            <td style="padding:0 0 12px;font-size:14px;text-align:right;font-weight:600;" th:text="${balance}">JOD 0.000</td>
+          </tr>
+          <tr th:if="${dueDate != null and !paid}">
+            <td style="padding:0 0 12px;font-size:14px;color:#5e6e69;">Due</td>
+            <td style="padding:0 0 12px;font-size:14px;text-align:right;" th:text="${dueDate}">1 Dec 2026</td>
+          </tr>
+          <tr th:if="${validUntil != null}">
+            <td style="padding:0 0 12px;font-size:14px;color:#5e6e69;">Valid until</td>
+            <td style="padding:0 0 12px;font-size:14px;text-align:right;" th:text="${validUntil}">1 Dec 2026</td>
+          </tr>
+        </table>
+
+        <p th:if="${payUrl != null}" style="margin:0 0 24px;">
+          <a th:href="${payUrl}" style="display:inline-block;background:#e8b33a;color:#3a2a06;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:5px;font-size:15px;">Pay online</a>
+        </p>
+        <p th:if="${paid}" style="margin:0 0 20px;font-size:14px;color:#2f7a52;font-weight:600;">This invoice is paid in full. Thank you.</p>
+
+        <p style="margin:0;font-size:13px;color:#5e6e69;line-height:1.5;">
+          Questions? Just reply to this email<span th:if="${orgEmail != null}"> or write to <span th:text="${orgEmail}">billing@example.com</span></span>.
+        </p>
+        <p dir="rtl" style="margin:18px 0 0;font-size:13px;color:#5e6e69;line-height:1.6;text-align:right;">
+          مرفق لكم المستند بصيغة PDF. للاستفسار يرجى الرد على هذا البريد.
+        </p>
+      </td></tr>
+    </table>
+    <p style="font-size:11px;color:#8a9893;margin:14px 0 0;">Sent with Fatoora</p>
+  </td></tr>
+</table>
+</body>
+</html>

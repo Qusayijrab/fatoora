@@ -4,5 +4,7 @@ spring:
     locations: classpath:db/migration,classpath:db/testmigration
 
 app:
+  storage:
+    type: memory
   jwt:
     secret: test-secret-test-secret-test-secret-0123

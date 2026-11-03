@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Invoice / credit note / quote PDF. Strict XHTML (rendered by Thymeleaf in XML mode),
+  laid out with tables because the PDF engine has no flexbox. Labels are bilingual
+  (English | Arabic), as is common on invoices in Jordan and the Gulf. Every value
+  arrives pre-formatted from DocumentView; this template does no math.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${doc.titleEn + ' ' + (doc.number != null ? doc.number : 'Draft')}">Invoice</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 20mm 16mm;
+      @bottom-left { content: "Fatoora"; font-family: Tajawal; font-size: 7.5pt; color: #8a9893; }
+      @bottom-right { content: "Page " counter(page) " / " counter(pages); font-family: Tajawal; font-size: 7.5pt; color: #8a9893; }
+    }
+    * { box-sizing: border-box; }
+    body { font-family: Tajawal; font-size: 9.5pt; color: #1b2a25; margin: 0; line-height: 1.45; }
+    .bar { height: 5pt; background: #173f35; margin-bottom: 18pt; }
+    .bar-accent { height: 5pt; width: 64pt; background: #e8b33a; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { vertical-align: top; padding: 0; }
+    .muted { color: #5e6e69; }
+    .label { font-size: 7.5pt; letter-spacing: 1pt; text-transform: uppercase; color: #5e6e69; font-weight: 500; }
+    /* Arabic letters join: never letter-space or uppercase-transform them. */
+    .ar { font-size: 8pt; color: #5e6e69; letter-spacing: 0; text-transform: none; }
+    .name { font-weight: 700; font-size: 11pt; }
+    .title { font-size: 20pt; font-weight: 700; color: #173f35; line-height: 1; }
+    .title-ar { font-size: 13pt; color: #173f35; }
+    .number { font-size: 11pt; font-weight: 500; margin-top: 4pt; }
+    .meta td { padding: 1.5pt 0 1.5pt 10pt; text-align: right; }
+    .lines { margin-top: 20pt; }
+    .lines th { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .8pt; color: #5e6e69; font-weight: 500;
+      padding: 6pt 6pt; border-bottom: 1pt solid #173f35; text-align: right; }
+    .lines th.first, .lines td.first { text-align: left; padding-left: 0; }
+    .lines td { padding: 7pt 6pt; border-bottom: .5pt solid #d6dedb; text-align: right; }
+    .lines .ar { display: block; font-size: 7pt; letter-spacing: 0; text-transform: none; }
+    .totals { margin-top: 12pt; width: 46%; margin-left: 54%; }
+    .totals td { padding: 3pt 0; }
+    .totals td.v { text-align: right; }
+    .totals tr.strong td { font-weight: 700; font-size: 11pt; border-top: 1pt solid #173f35; padding-top: 6pt; }
+    .notes { margin-top: 26pt; border-top: .5pt solid #d6dedb; padding-top: 10pt; }
+    .notes td { width: 50%; padding-right: 14pt; }
+    .stamp { position: absolute; top: 140pt; right: 24pt; padding: 5pt 12pt 4pt 12pt; border: 2pt solid; border-radius: 3pt;
+      text-align: center; transform: rotate(-8deg); opacity: .85; }
+    .stamp-en { font-weight: 700; font-size: 15pt; letter-spacing: 2pt; }
+    .stamp-ar { font-weight: 700; font-size: 13pt; letter-spacing: 0; }
+    .watermark { position: absolute; top: 330pt; left: 70pt; font-size: 90pt; font-weight: 700; color: #e9ecea;
+      transform: rotate(-30deg); letter-spacing: 8pt; }
+  </style>
+</head>
+<body>
+  <div class="watermark" th:if="${doc.draft}">DRAFT</div>
+  <div class="bar"><div class="bar-accent"></div></div>
+
+  <!-- Header: seller left, document title right -->
+  <table>
+    <tr>
+      <td style="width: 55%;">
+        <div class="name" th:text="${doc.seller.name}">Seller</div>
+        <div class="muted" th:each="l : ${doc.seller.lines}" th:text="${l}">line</div>
+      </td>
+      <td style="text-align: right;">
+        <div class="title" th:text="${doc.titleEn}">Invoice</div>
+        <div class="title-ar" th:text="${doc.titleAr}">فاتورة</div>
+        <div class="number" th:text="${doc.number != null ? doc.number : 'Draft'}">INV-2026-0001</div>
+        <table class="meta" style="width: auto; margin-left: auto; margin-top: 6pt;">
+          <tr th:each="d : ${doc.dates}">
+            <td class="muted"><span th:text="${d.en}">Issued</span> <span class="ar" th:text="${d.ar}">تاريخ</span></td>
+            <td th:text="${d.value}">1 Nov 2026</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Bill to -->
+  <div style="margin-top: 22pt;">
+    <div class="label">Bill to <span class="ar">العميل</span></div>
+    <div class="name" style="margin-top: 3pt;" th:text="${doc.billTo.name}">Client</div>
+    <div class="muted" th:each="l : ${doc.billTo.lines}" th:text="${l}">line</div>
+  </div>
+
+  <!-- Lines -->
+  <table class="lines">
+    <thead>
+      <tr>
+        <th class="first" style="width: 46%;">Description <span class="ar">الوصف</span></th>
+        <th>Qty <span class="ar">الكمية</span></th>
+        <th>Unit price <span class="ar">سعر الوحدة</span></th>
+        <th>Tax <span class="ar">الضريبة</span></th>
+        <th>Amount <span class="ar">المبلغ</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="line : ${doc.lines}">
+        <td class="first" th:text="${line.description}">Item</td>
+        <td th:text="${line.quantity}">1</td>
+        <td th:text="${line.unitPrice}">0.000</td>
+        <td th:text="${line.tax}">16%</td>
+        <td th:text="${line.amount}">0.000</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <table class="totals">
+    <tr th:each="t : ${doc.totals}" th:class="${t.strong ? 'strong' : ''}">
+      <td><span th:text="${t.en}">Subtotal</span> <span class="ar" th:text="${t.ar}">المجموع</span></td>
+      <td class="v" th:text="${t.value}">0.000</td>
+    </tr>
+  </table>
+
+  <!-- Notes and terms -->
+  <table class="notes" th:if="${doc.notes != null or doc.terms != null}">
+    <tr>
+      <td th:if="${doc.notes != null}">
+        <div class="label">Notes <span class="ar">ملاحظات</span></div>
+        <div style="margin-top: 3pt; white-space: pre-line;" th:text="${doc.notes}">notes</div>
+      </td>
+      <td th:if="${doc.terms != null}">
+        <div class="label">Payment terms <span class="ar">شروط الدفع</span></div>
+        <div style="margin-top: 3pt; white-space: pre-line;" th:text="${doc.terms}">terms</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="stamp" th:if="${doc.stampLabel != null}"
+       th:style="${'color: ' + doc.stampColor + '; border-color: ' + doc.stampColor + ';'}">
+    <div class="stamp-en" th:text="${doc.stampLabel}">PAID</div>
+    <div class="stamp-ar" th:if="${doc.stampLabelAr != null}" th:text="${doc.stampLabelAr}">مدفوعة</div>
+  </div>
+</body>
+</html>
