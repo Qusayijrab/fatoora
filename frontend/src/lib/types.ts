@@ -52,6 +52,8 @@ export type Money = { amount: string; currency: string; amountMinor: number };
 export type Page<T> = { items: T[]; page: number; size: number; total: number };
 
 export type OrganizationDetails = Organization & {
+  remindersEnabled: boolean;
+  reminderDays: number[];
   legalName: string | null;
   taxId: string | null;
   email: string | null;
@@ -245,3 +247,53 @@ export type MockCheckout = {
   status: "OPEN" | "COMPLETED" | "EXPIRED";
   payToken: string;
 };
+
+export type Frequency = "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
+
+export type Recurring = {
+  id: string;
+  name: string;
+  client: ClientRef;
+  currency: string;
+  frequency: Frequency;
+  intervalCount: number;
+  startDate: string;
+  endDate: string | null;
+  nextRunDate: string | null;
+  runCount: number;
+  paymentTermsDays: number;
+  autoIssue: boolean;
+  autoEmail: boolean;
+  status: "ACTIVE" | "PAUSED" | "ENDED";
+  notes: string | null;
+  terms: string | null;
+  lines: Line[];
+  subtotal: Money;
+  tax: Money;
+  total: Money;
+  lastRunAt: string | null;
+};
+
+export type RecurringRun = {
+  periodDate: string;
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  invoiceStatus: InvoiceStatus | null;
+  createdAt: string;
+};
+
+export type RecurringInput = DocumentInput & {
+  name: string;
+  frequency: Frequency;
+  intervalCount: number;
+  startDate: string;
+  endDate: string | null;
+  paymentTermsDays: number;
+  autoIssue: boolean;
+  autoEmail: boolean;
+};
+
+export function describeFrequency(f: Frequency, n: number): string {
+  const unit = { WEEKLY: "week", MONTHLY: "month", QUARTERLY: "quarter", YEARLY: "year" }[f];
+  return n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`;
+}

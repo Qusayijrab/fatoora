@@ -66,13 +66,21 @@ export function DocumentEditor({
   presetClientId,
   save,
   footer,
+  extra,
+  hideDates = false,
+  submitLabel = "Save draft",
 }: {
-  kind: "invoice" | "quote";
+  kind: "invoice" | "quote" | "recurring";
   data: EditorData;
   initial?: Initial;
   presetClientId?: string;
   save: (input: DocumentInput) => Promise<FormState>;
   footer?: ReactNode;
+  /** Extra fields rendered under the header (e.g. a recurring schedule). */
+  extra?: ReactNode;
+  /** Recurring templates have no issue/due date of their own. */
+  hideDates?: boolean;
+  submitLabel?: string;
 }) {
   const uid = useId();
   const defaultTax = data.taxRates.find((t) => t.isDefault)?.id ?? null;
@@ -172,7 +180,7 @@ export function DocumentEditor({
     startTransition(async () => {
       const result = await save(input);
       setState(result);
-      if (result.ok) toast.success(kind === "invoice" ? "Invoice saved" : "Quote saved");
+      if (result.ok) toast.success(kind === "invoice" ? "Invoice saved" : kind === "quote" ? "Quote saved" : "Recurring invoice saved");
       else if (result.error && !result.fieldErrors) toast.error(result.error);
     });
   }
@@ -245,13 +253,13 @@ export function DocumentEditor({
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1 lg:grid-cols-1">
+        <div className={cn("grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1 lg:grid-cols-1", hideDates && "hidden")}>
           <div className="grid gap-1.5">
             <Label htmlFor={`issue-${uid}`}>{kind === "invoice" ? "Issue date" : "Quote date"}</Label>
             <Input id={`issue-${uid}`} type="date" value={issueDate} onChange={(e) => changeIssueDate(e.target.value)} required className="figures" />
           </div>
         </div>
-        <div className="grid gap-1.5 sm:col-start-2 lg:col-start-4">
+        <div className={cn("grid gap-1.5 sm:col-start-2 lg:col-start-4", hideDates && "hidden")}>
           <Label htmlFor={`end-${uid}`}>{endLabel}</Label>
           <Input
             id={`end-${uid}`}
@@ -266,6 +274,8 @@ export function DocumentEditor({
           />
         </div>
       </div>
+
+      {extra}
 
       {/* Lines */}
       <div className="overflow-x-auto rounded-lg border">
@@ -410,7 +420,7 @@ export function DocumentEditor({
       <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-5">
         {footer}
         <Button type="submit" disabled={pending || !clientId} className="min-w-32">
-          {pending ? "Saving…" : "Save draft"}
+          {pending ? "Saving…" : submitLabel}
         </Button>
       </div>
     </form>

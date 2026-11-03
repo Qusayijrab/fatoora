@@ -46,8 +46,12 @@ const ORG_FIELDS = [
 
 export async function saveOrganization(_prev: FormState, formData: FormData): Promise<FormState> {
   const values = readForm(formData, ORG_FIELDS);
+  const reminders = {
+    remindersEnabled: formData.get("remindersEnabled") === "on",
+    reminderDays: formData.getAll("reminderDays").map((d) => Number(d)).filter((d) => Number.isInteger(d)),
+  };
   try {
-    await api("/organizations/current", { method: "PATCH", body: values });
+    await api("/organizations/current", { method: "PATCH", body: { ...values, ...reminders } });
   } catch (e) {
     return toFormState(e, echo(values));
   }

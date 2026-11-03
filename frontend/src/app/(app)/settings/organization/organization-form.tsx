@@ -9,6 +9,8 @@ import { useActionFeedback } from "@/hooks/use-action-feedback";
 import type { FormState, OrganizationDetails } from "@/lib/types";
 import { saveOrganization } from "../actions";
 
+const REMINDER_CHOICES = [1, 3, 7, 14, 30];
+
 export function OrganizationForm({ org, canEdit }: { org: OrganizationDetails; canEdit: boolean }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveOrganization, {});
   useActionFeedback(state, "Organization saved");
@@ -33,6 +35,28 @@ export function OrganizationForm({ org, canEdit }: { org: OrganizationDetails; c
           </div>
           <TextField name="city" label="City" state={state} defaultValue={org.city} />
           <CountryField state={state} defaultValue={org.country} />
+        </Section>
+        <Section
+          title="Reminders"
+          description="Polite emails to clients with overdue invoices, with the PDF and a payment link. Each one is sent once."
+        >
+          <div className="grid gap-3 sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" name="remindersEnabled" defaultChecked={org.remindersEnabled} className="size-4 accent-primary" />
+              Send overdue reminders automatically
+            </label>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Days after the due date">
+              {REMINDER_CHOICES.map((d) => (
+                <label
+                  key={d}
+                  className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                >
+                  <input type="checkbox" name="reminderDays" value={d} defaultChecked={org.reminderDays.includes(d)} className="size-3.5 accent-primary" />
+                  {d} {d === 1 ? "day" : "days"} late
+                </label>
+              ))}
+            </div>
+          </div>
         </Section>
         <Section title="Defaults" description="Changing these affects new documents only. Issued invoices keep their currency and dates.">
           <CurrencyField name="defaultCurrency" label="Default currency" state={state} defaultValue={org.defaultCurrency} />

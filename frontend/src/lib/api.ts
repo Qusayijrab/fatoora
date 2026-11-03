@@ -8,6 +8,8 @@ import type {
   InvoiceSummary,
   Quote,
   QuoteSummary,
+  Recurring,
+  RecurringRun,
   FormState,
   Me,
   Member,
@@ -143,3 +145,7 @@ export async function apiRaw(path: string): Promise<Response> {
   if (!token) redirect("/login");
   return fetch(`${API_URL}/api/v1${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
 }
+
+export const getRecurringList = () => api<Recurring[]>("/recurring");
+export const getRecurring = (id: string) => api<Recurring>(`/recurring/${encodeURIComponent(id)}`);
+export const getRecurringRuns = (id: string) => api<RecurringRun[]>(`/recurring/${encodeURIComponent(id)}/runs`);
