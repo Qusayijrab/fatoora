@@ -10,9 +10,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
 
     private final DashboardService service;
+    private final OverviewService overview;
 
-    public DashboardController(DashboardService service) {
+    public DashboardController(DashboardService service, OverviewService overview) {
         this.service = service;
+        this.overview = overview;
+    }
+
+    /** Money totals, 12-month series, aging, top balances and recent activity, in the base currency. */
+    @GetMapping("/overview")
+    public OverviewService.Overview overview() {
+        return overview.overview();
     }
 
     @GetMapping("/summary")

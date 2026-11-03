@@ -99,6 +99,10 @@ public final class InvoiceDtos {
             List<CreditNoteRef> creditNotes,
             DocumentRef creditedInvoice,
             UUID quoteId,
+            String baseCurrency,
+            String exchangeRate,
+            String rateSource,
+            MoneyDto totalBase,
             Instant issuedAt,
             Instant voidedAt,
             String voidReason,
@@ -122,7 +126,9 @@ public final class InvoiceDtos {
                                     cn.getIssueDate(), cn.getNotes()))
                             .toList(),
                     credited == null ? null : new DocumentRef(credited.getId(), credited.getNumber()),
-                    i.getQuoteId(), i.getIssuedAt(), i.getVoidedAt(), i.getVoidReason(), i.getCreatedAt());
+                    i.getQuoteId(), i.getBaseCurrency(),
+                    i.getExchangeRate() == null ? null : i.getExchangeRate().stripTrailingZeros().toPlainString(),
+                    i.getRateSource(), MoneyDto.from(i.getTotalBase()), i.getIssuedAt(), i.getVoidedAt(), i.getVoidReason(), i.getCreatedAt());
         }
     }
 }

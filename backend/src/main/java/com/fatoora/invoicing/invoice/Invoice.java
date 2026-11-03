@@ -118,6 +118,21 @@ public class Invoice extends TenantScopedEntity {
     @Column(name = "quote_id")
     private UUID quoteId;
 
+    // ---- exchange rate frozen at issue (CLAUDE.md rule 6) ----
+
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "base_currency", length = 3)
+    private String baseCurrency;
+
+    @Column(name = "exchange_rate", precision = 20, scale = 10)
+    private java.math.BigDecimal exchangeRate;
+
+    @Column(name = "total_base_minor")
+    private Long totalBaseMinor;
+
+    @Column(name = "rate_source")
+    private String rateSource;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "credited_invoice_id")
     private Invoice creditedInvoice;
@@ -211,10 +226,18 @@ public class Invoice extends TenantScopedEntity {
         }
     }
 
-    /** Assigns the number and freezes buyer and seller details. */
-    public void issue(String number, Party seller, Instant now) {
+    /**
+     * Assigns the number and freezes buyer and seller details and the exchange rate:
+     * 1 {@code currency} = {@code rate} {@code baseCurrency}. The base total is computed
+     * once, here, and never recomputed.
+     */
+    public void issue(String number, Party seller, Instant now, String baseCurrency, java.math.BigDecimal rate, String rateSource) {
         requireIssuable();
         moveTo(InvoiceStatus.ISSUED);
+        this.baseCurrency = baseCurrency;
+        this.exchangeRate = rate;
+        this.rateSource = rateSource;
+        this.totalBaseMinor = getTotal().convert(baseCurrency, rate).amountMinor();
         this.number = number;
         this.billTo = Party.of(client);
         this.seller = seller;
@@ -373,6 +396,23 @@ public class Invoice extends TenantScopedEntity {
 
     public Party getSeller() {
         return seller;
+    }
+
+    public String getBaseCurrency() {
+        return baseCurrency;
+    }
+
+    public java.math.BigDecimal getExchangeRate() {
+        return exchangeRate;
+    }
+
+    public String getRateSource() {
+        return rateSource;
+    }
+
+    /** The total in the organization's base currency, as frozen at issue (null for drafts). */
+    public Money getTotalBase() {
+        return totalBaseMinor == null ? null : Money.ofMinor(totalBaseMinor, baseCurrency);
     }
 
     public UUID getQuoteId() {

@@ -4,6 +4,8 @@ spring:
     locations: classpath:db/migration,classpath:db/testmigration
 
 app:
+  fx:
+    ecb-enabled: false
   # Tests drive JobsService directly with a chosen "now"; no background timers.
   jobs:
     enabled: false

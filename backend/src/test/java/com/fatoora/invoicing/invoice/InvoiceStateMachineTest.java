@@ -46,7 +46,7 @@ class InvoiceStateMachineTest {
 
     static Invoice issued() {
         Invoice invoice = draft();
-        invoice.issue("INV-2026-0001", Party.of(new Organization("Seller", "JOD", "Asia/Amman")), NOW);
+        invoice.issue("INV-2026-0001", Party.of(new Organization("Seller", "JOD", "Asia/Amman")), NOW, "JOD", BigDecimal.ONE, "SAME");
         return invoice;
     }
 
@@ -99,7 +99,7 @@ class InvoiceStateMachineTest {
         @Test
         void cannotIssueTwice() {
             Invoice invoice = issued();
-            assertConflict(() -> invoice.issue("INV-2026-0002", null, NOW));
+            assertConflict(() -> invoice.issue("INV-2026-0002", null, NOW, "JOD", BigDecimal.ONE, "SAME"));
         }
 
         @Test

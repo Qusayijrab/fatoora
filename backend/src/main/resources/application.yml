@@ -35,6 +35,9 @@ spring:
     check-template-location: false
 
 app:
+  fx:
+    # Daily ECB reference rates for currencies with no manual rate or USD peg.
+    ecb-enabled: ${FX_ECB_ENABLED:true}
   jobs:
     enabled: ${JOBS_ENABLED:true}
   payments:

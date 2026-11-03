@@ -9,6 +9,7 @@ import com.fatoora.invoicing.common.error.ApiException;
 import com.fatoora.invoicing.common.money.Money;
 import com.fatoora.invoicing.common.tenancy.CurrentTenant;
 import com.fatoora.invoicing.common.tenancy.TenantContext;
+import com.fatoora.invoicing.currency.FxService;
 import com.fatoora.invoicing.document.DocumentNumberService;
 import com.fatoora.invoicing.document.DocumentNumberService.DocType;
 import com.fatoora.invoicing.document.LineCalculator.CalculatedLine;
@@ -52,11 +53,12 @@ public class InvoiceService {
     private final DocumentNumberService numbers;
     private final AuditService audit;
     private final ApplicationEventPublisher events;
+    private final FxService fx;
     private final Clock clock;
 
     public InvoiceService(InvoiceRepository invoices, PaymentRepository payments, ClientService clients,
             OrganizationService organizations, LineDraftFactory lineFactory, DocumentNumberService numbers,
-            AuditService audit, ApplicationEventPublisher events, Clock clock) {
+            AuditService audit, ApplicationEventPublisher events, FxService fx, Clock clock) {
         this.invoices = invoices;
         this.payments = payments;
         this.clients = clients;
@@ -65,6 +67,7 @@ public class InvoiceService {
         this.numbers = numbers;
         this.audit = audit;
         this.events = events;
+        this.fx = fx;
         this.clock = clock;
     }
 
@@ -170,10 +173,13 @@ public class InvoiceService {
         Invoice invoice = loadForUpdate(id);
         invoice.requireIssuable();
         Organization org = organizations.currentEntity();
+        // Rate first: if there is none, nothing (not even a number) is used up.
+        FxService.Rate rate = fx.rateFor(invoice.getCurrency(), org.getDefaultCurrency(), invoice.getIssueDate());
         String number = numbers.next(tenant.organizationId(), DocType.INVOICE, invoice.getIssueDate().getYear());
-        invoice.issue(number, Party.of(org), clock.instant());
+        invoice.issue(number, Party.of(org), clock.instant(), org.getDefaultCurrency(), rate.value(), rate.source());
         audit.record("invoice", invoice.getId(), "issued", "Invoice " + number + " issued",
-                Map.of("number", number, "total", invoice.getTotal().toString()));
+                Map.of("number", number, "total", invoice.getTotal().toString(),
+                        "rate", rate.value().toPlainString() + " (" + rate.source() + ")"));
         events.publishEvent(new InvoiceIssued(tenant.organizationId(), invoice.getId()));
         return toResponse(invoice);
     }
@@ -241,8 +247,10 @@ public class InvoiceService {
         creditNote.edit(original.getClient(), original.getCurrency(), today, null, request.reason().trim(), null,
                 lineFactory.calculate(request.lines(), original.getCurrency()));
         creditNote.requireIssuable();
+        // A credit note reuses the original invoice's frozen rate, so it offsets it exactly.
         String number = numbers.next(tenant.organizationId(), DocType.CREDIT_NOTE, today.getYear());
-        creditNote.issue(number, Party.of(org), clock.instant());
+        creditNote.issue(number, Party.of(org), clock.instant(), original.getBaseCurrency(), original.getExchangeRate(),
+                original.getRateSource());
         original.applyCredit(creditNote.getTotal());
         invoices.save(creditNote);
 
