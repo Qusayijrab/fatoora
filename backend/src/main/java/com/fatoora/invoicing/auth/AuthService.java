@@ -1,0 +1,87 @@
+package com.fatoora.invoicing.auth;
+
+import com.fatoora.invoicing.auth.dto.LoginRequest;
+import com.fatoora.invoicing.auth.dto.RegisterRequest;
+import com.fatoora.invoicing.auth.dto.TokenResponse;
+import com.fatoora.invoicing.common.error.ApiException;
+import com.fatoora.invoicing.organization.Membership;
+import com.fatoora.invoicing.organization.MembershipRepository;
+import com.fatoora.invoicing.organization.OrganizationService;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class AuthService {
+
+    private static final String INVALID_CREDENTIALS = "Invalid email or password";
+
+    private final UserRepository users;
+    private final MembershipRepository memberships;
+    private final OrganizationService organizations;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    /**
+     * Hash compared against when the email doesn't exist, so "unknown email" and
+     * "wrong password" take the same time and can't be told apart.
+     */
+    private final String dummyHash;
+
+    public AuthService(
+            UserRepository users,
+            MembershipRepository memberships,
+            OrganizationService organizations,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
+        this.users = users;
+        this.memberships = memberships;
+        this.organizations = organizations;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.dummyHash = passwordEncoder.encode("dummy-password-for-timing");
+    }
+
+    /** Creates user + organization + OWNER membership in one transaction: all or nothing. */
+    @Transactional
+    public TokenResponse register(RegisterRequest request) {
+        String email = User.normalizeEmail(request.email());
+        if (users.existsByEmail(email)) {
+            throw ApiException.conflict("An account with this email already exists");
+        }
+        User user = users.save(new User(email, passwordEncoder.encode(request.password()), request.fullName()));
+        Membership owner = organizations.createWithOwner(
+                user, request.organizationName(), request.defaultCurrency(), request.timeZone());
+        return jwtService.issue(user.getId(), owner.getOrganization().getId());
+    }
+
+    /** Logs in to the user's oldest organization; use switch-org to change. */
+    @Transactional(readOnly = true)
+    public TokenResponse login(LoginRequest request) {
+        User user = users.findByEmail(User.normalizeEmail(request.email())).orElse(null);
+        if (user == null) {
+            passwordEncoder.matches(request.password(), dummyHash);
+            throw ApiException.unauthorized(INVALID_CREDENTIALS);
+        }
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw ApiException.unauthorized(INVALID_CREDENTIALS);
+        }
+        List<Membership> mine = memberships.findAllForUser(user.getId());
+        UUID defaultOrg = mine.isEmpty() ? null : mine.getFirst().getOrganization().getId();
+        return jwtService.issue(user.getId(), defaultOrg);
+    }
+
+    /**
+     * New token for another org. Same 403 whether the org doesn't exist or the user
+     * isn't a member, so this can't be used to probe for other orgs.
+     */
+    @Transactional(readOnly = true)
+    public TokenResponse switchOrganization(UUID userId, UUID organizationId) {
+        if (!memberships.existsInOrganization(organizationId, userId)) {
+            throw ApiException.forbidden("You are not a member of this organization");
+        }
+        return jwtService.issue(userId, organizationId);
+    }
+}
