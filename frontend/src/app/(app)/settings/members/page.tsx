@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getMe, getMembers } from "@/lib/api";
@@ -38,7 +38,7 @@ async function Members() {
   return (
     <div className="grid gap-6">
       {canManage && <AddMemberForm actorRole={role} />}
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -73,7 +73,7 @@ async function Members() {
                   {dateFormat.format(new Date(m.joinedAt))}
                 </TableCell>
                 <TableCell>
-                  <StatusStamp status={m.role} />
+                  <StatusBadge status={m.role} />
                 </TableCell>
                 {canManage && (
                   <TableCell className="pe-5 text-end">

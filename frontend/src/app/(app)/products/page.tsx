@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { ListSearch } from "@/components/list-search";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -61,7 +61,7 @@ async function ProductList({ searchParams }: { searchParams: Promise<Search> }) 
   return (
     <>
       <ListSearch action="/products" q={q} includeArchived={includeArchived} placeholder="Search name or SKU" />
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -85,7 +85,7 @@ async function ProductList({ searchParams }: { searchParams: Promise<Search> }) 
                   <Link href={`/products/${p.id}`} className="font-medium hover:underline">
                     {p.name}
                   </Link>
-                  {p.archived && <StatusStamp status="VOID" label="Archived" className="ms-2" />}
+                  {p.archived && <StatusBadge status="VOID" label="Archived" className="ms-2" />}
                   {p.sku && <p className="figures text-xs text-muted-foreground">{p.sku}</p>}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground sm:table-cell">per {p.unit}</TableCell>

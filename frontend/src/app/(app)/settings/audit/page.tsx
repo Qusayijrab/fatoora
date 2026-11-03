@@ -52,7 +52,7 @@ async function Log({ searchParams }: { searchParams: Promise<{ status?: string; 
   return (
     <>
       <StatusTabs base="/settings/audit" current={type} tabs={TYPES} />
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">

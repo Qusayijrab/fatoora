@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { ListSearch } from "@/components/list-search";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -61,7 +61,7 @@ async function ClientList({ searchParams }: { searchParams: Promise<Search> }) {
   return (
     <>
       <ListSearch action="/clients" q={q} includeArchived={includeArchived} placeholder="Search name, email or tax number" />
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -85,7 +85,7 @@ async function ClientList({ searchParams }: { searchParams: Promise<Search> }) {
                   <Link href={`/clients/${c.id}`} className="font-medium hover:underline">
                     {c.name}
                   </Link>
-                  {c.archived && <StatusStamp status="VOID" label="Archived" className="ms-2" />}
+                  {c.archived && <StatusBadge status="VOID" label="Archived" className="ms-2" />}
                   {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
                 </TableCell>
                 <TableCell className="figures hidden text-muted-foreground md:table-cell">{c.taxId ?? "—"}</TableCell>

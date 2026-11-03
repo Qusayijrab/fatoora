@@ -86,7 +86,7 @@ function NavGroupView({ label, items, pathname }: { label: string; items: NavIte
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-[11px] font-medium uppercase tracking-[0.12em] text-sidebar-foreground/55">
+      <SidebarGroupLabel className="text-xs font-medium text-sidebar-foreground/70">
         {label}
       </SidebarGroupLabel>
       <SidebarGroupContent>
@@ -99,7 +99,7 @@ function NavGroupView({ label, items, pathname }: { label: string; items: NavIte
                   asChild
                   isActive={active}
                   tooltip={item.label}
-                  className="relative h-9 data-active:bg-sidebar-accent data-active:before:absolute data-active:before:inset-y-2 data-active:before:start-0 data-active:before:w-[3px] data-active:before:rounded-full data-active:before:bg-sidebar-primary"
+                  className="h-9 rounded-lg font-medium text-sidebar-foreground hover:bg-sidebar-accent/70 data-active:bg-sidebar-accent data-active:text-sidebar-primary data-active:shadow-xs data-active:ring-1 data-active:ring-sidebar-border dark:data-active:text-sidebar-accent-foreground"
                 >
                   <Link href={item.href} onClick={() => setOpenMobile(false)}>
                     <item.icon strokeWidth={1.75} />

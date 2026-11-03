@@ -12,7 +12,7 @@ export function PayButton({ token, amount, provider }: { token: string; amount: 
     <div className="grid gap-2">
       <Button
         size="lg"
-        className="h-12 bg-saffron text-base text-saffron-foreground hover:bg-saffron/90"
+        className="h-12 text-base"
         disabled={pending}
         onClick={() =>
           startTransition(async () => {

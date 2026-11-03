@@ -5,10 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Fatoora design system: "Arab modernist bilingual".
- * A cedar-green brand field, a geometric bilingual face (Readex Pro covers Latin and
- * Arabic with one voice), tight corners, ink-on-paper neutrals, and document states
- * rendered as ink stamps. See DESIGN.md for the full rules.
+ * Fatoora design system: "Clean indigo".
+ * Bright white surfaces on a cool gray page, one indigo accent, soft card shadows,
+ * 10px corners, and document states as tinted pills. See DESIGN.md for the rules.
  */
 
 @theme inline {
@@ -50,10 +49,10 @@
   /* Brand fields and document-state inks */
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
-  --color-cedar: var(--cedar);
-  --color-cedar-foreground: var(--cedar-foreground);
-  --color-saffron: var(--saffron);
-  --color-saffron-foreground: var(--saffron-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-pop: var(--pop);
+  --color-pop-foreground: var(--pop-foreground);
   --color-ink-draft: var(--ink-draft);
   --color-ink-sent: var(--ink-sent);
   --color-ink-paid: var(--ink-paid);
@@ -69,127 +68,128 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  --animate-stamp: stamp 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop: pop 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes stamp {
+@keyframes pop {
   from {
     opacity: 0;
-    transform: scale(1.4) rotate(var(--stamp-tilt, -2deg));
-    filter: blur(2px);
+    transform: scale(0.85);
   }
   to {
     opacity: 1;
-    transform: scale(1) rotate(var(--stamp-tilt, -2deg));
-    filter: blur(0);
+    transform: scale(1);
   }
 }
 
 :root {
-  --radius: 0.375rem;
+  --radius: 0.625rem;
 
-  /* Paper and ink: cool, faintly green neutrals (never cream, never pure gray). */
-  --background: oklch(0.972 0.005 165);
-  --foreground: oklch(0.22 0.02 170);
-  --card: oklch(0.995 0.002 165);
-  --card-foreground: oklch(0.22 0.02 170);
-  --popover: oklch(0.995 0.002 165);
-  --popover-foreground: oklch(0.22 0.02 170);
+  /* Cool zinc neutrals with a breath of indigo; white cards sit on a light gray page. */
+  --background: oklch(0.982 0.003 286);
+  --foreground: oklch(0.21 0.02 285);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 285);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.02 285);
 
-  --primary: oklch(0.42 0.075 166);
-  --primary-foreground: oklch(0.985 0.008 160);
-  --secondary: oklch(0.935 0.014 165);
-  --secondary-foreground: oklch(0.27 0.04 168);
-  --muted: oklch(0.945 0.007 165);
-  --muted-foreground: oklch(0.47 0.02 170);
-  --accent: oklch(0.925 0.025 165);
-  --accent-foreground: oklch(0.27 0.05 168);
-  --destructive: oklch(0.52 0.19 25);
-  --border: oklch(0.885 0.01 165);
-  --input: oklch(0.86 0.012 165);
-  --ring: oklch(0.55 0.1 166);
+  /* Indigo 600: buttons, links, focus, the active nav item. */
+  --primary: oklch(0.511 0.262 277);
+  --primary-foreground: oklch(0.985 0.005 277);
+  --secondary: oklch(0.962 0.018 277);
+  --secondary-foreground: oklch(0.398 0.195 277);
+  --muted: oklch(0.967 0.003 286);
+  --muted-foreground: oklch(0.52 0.016 286);
+  --accent: oklch(0.962 0.018 277);
+  --accent-foreground: oklch(0.398 0.195 277);
+  --destructive: oklch(0.577 0.215 27);
+  --border: oklch(0.919 0.005 286);
+  --input: oklch(0.89 0.006 286);
+  --ring: oklch(0.585 0.233 277);
 
-  --cedar: oklch(0.3 0.055 168);
-  --cedar-foreground: oklch(0.95 0.02 155);
-  --saffron: oklch(0.82 0.145 80);
-  --saffron-foreground: oklch(0.25 0.05 70);
+  /* Brand field (landing hero, auth panel, payment header): deep indigo, with a light indigo pop on it. */
+  --brand: oklch(0.28 0.12 277);
+  --brand-foreground: oklch(0.97 0.012 277);
+  --pop: oklch(0.87 0.065 277);
+  --pop-foreground: oklch(0.28 0.12 277);
 
-  --ink-draft: oklch(0.5 0.012 170);
-  --ink-sent: oklch(0.46 0.13 258);
-  --ink-paid: oklch(0.48 0.11 155);
-  --ink-partial: oklch(0.5 0.09 200);
-  --ink-overdue: oklch(0.52 0.19 25);
-  --ink-expired: oklch(0.56 0.12 65);
+  /* State colors: text on a 12% tint of the same color. */
+  --ink-draft: oklch(0.52 0.016 286);
+  --ink-sent: oklch(0.511 0.262 277);
+  --ink-paid: oklch(0.527 0.137 150);
+  --ink-partial: oklch(0.52 0.105 223);
+  --ink-overdue: oklch(0.577 0.215 27);
+  --ink-expired: oklch(0.555 0.135 66);
 
-  /* Chart series, validated (dataviz validator): light pair passes with legend + table relief. */
-  --series-1: #167a59;
-  --series-2: #d9a227;
-  --chart-1: oklch(0.42 0.075 166);
-  --chart-2: oklch(0.82 0.145 80);
-  --chart-3: oklch(0.46 0.13 258);
-  --chart-4: oklch(0.52 0.19 25);
-  --chart-5: oklch(0.5 0.09 200);
+  /* Chart series, validated (dataviz validator, light surface): indigo invoiced, teal collected. */
+  --series-1: #4f46e5;
+  --series-2: #0d9488;
+  --chart-1: oklch(0.511 0.262 277);
+  --chart-2: oklch(0.6 0.118 185);
+  --chart-3: oklch(0.52 0.105 223);
+  --chart-4: oklch(0.577 0.215 27);
+  --chart-5: oklch(0.555 0.135 66);
 
-  /* The sidebar is a committed cedar field. */
-  --sidebar: oklch(0.29 0.052 168);
-  --sidebar-foreground: oklch(0.9 0.025 160);
-  --sidebar-primary: oklch(0.82 0.145 80);
-  --sidebar-primary-foreground: oklch(0.25 0.05 70);
-  --sidebar-accent: oklch(0.355 0.06 168);
-  --sidebar-accent-foreground: oklch(0.985 0.008 160);
-  --sidebar-border: oklch(0.37 0.045 168);
-  --sidebar-ring: oklch(0.82 0.145 80);
+  --sidebar: oklch(0.967 0.004 286);
+  --sidebar-foreground: oklch(0.44 0.017 286);
+  --sidebar-primary: oklch(0.511 0.262 277);
+  --sidebar-primary-foreground: oklch(0.985 0.005 277);
+  --sidebar-accent: oklch(1 0 0);
+  --sidebar-accent-foreground: oklch(0.21 0.02 285);
+  --sidebar-border: oklch(0.919 0.005 286);
+  --sidebar-ring: oklch(0.585 0.233 277);
 }
 
 .dark {
-  --background: oklch(0.175 0.014 170);
-  --foreground: oklch(0.93 0.012 160);
-  --card: oklch(0.21 0.016 170);
-  --card-foreground: oklch(0.93 0.012 160);
-  --popover: oklch(0.225 0.017 170);
-  --popover-foreground: oklch(0.93 0.012 160);
+  --background: oklch(0.155 0.006 286);
+  --foreground: oklch(0.96 0.004 286);
+  --card: oklch(0.2 0.008 286);
+  --card-foreground: oklch(0.96 0.004 286);
+  --popover: oklch(0.215 0.008 286);
+  --popover-foreground: oklch(0.96 0.004 286);
 
-  --primary: oklch(0.74 0.1 165);
-  --primary-foreground: oklch(0.18 0.03 168);
-  --secondary: oklch(0.27 0.02 170);
-  --secondary-foreground: oklch(0.92 0.015 160);
-  --muted: oklch(0.25 0.015 170);
-  --muted-foreground: oklch(0.7 0.018 165);
-  --accent: oklch(0.29 0.03 168);
-  --accent-foreground: oklch(0.94 0.015 160);
-  --destructive: oklch(0.68 0.17 25);
-  --border: oklch(0.31 0.018 170);
-  --input: oklch(0.34 0.02 170);
-  --ring: oklch(0.7 0.1 165);
+  --primary: oklch(0.673 0.182 277);
+  --primary-foreground: oklch(0.2 0.08 277);
+  --secondary: oklch(0.27 0.05 277);
+  --secondary-foreground: oklch(0.87 0.065 277);
+  --muted: oklch(0.25 0.008 286);
+  --muted-foreground: oklch(0.71 0.013 286);
+  --accent: oklch(0.27 0.05 277);
+  --accent-foreground: oklch(0.93 0.03 277);
+  --destructive: oklch(0.704 0.191 22);
+  --border: oklch(0.29 0.008 286);
+  --input: oklch(0.33 0.01 286);
+  --ring: oklch(0.673 0.182 277);
 
-  --cedar: oklch(0.27 0.045 168);
-  --cedar-foreground: oklch(0.95 0.02 155);
-  --saffron: oklch(0.82 0.14 80);
-  --saffron-foreground: oklch(0.22 0.05 70);
+  --brand: oklch(0.24 0.1 277);
+  --brand-foreground: oklch(0.97 0.012 277);
+  --pop: oklch(0.87 0.065 277);
+  --pop-foreground: oklch(0.24 0.1 277);
 
-  --ink-draft: oklch(0.72 0.012 170);
-  --ink-sent: oklch(0.72 0.11 258);
-  --ink-paid: oklch(0.76 0.12 155);
-  --ink-partial: oklch(0.75 0.09 200);
-  --ink-overdue: oklch(0.7 0.16 25);
-  --ink-expired: oklch(0.78 0.12 70);
+  --ink-draft: oklch(0.71 0.013 286);
+  --ink-sent: oklch(0.73 0.15 277);
+  --ink-paid: oklch(0.77 0.15 155);
+  --ink-partial: oklch(0.75 0.11 223);
+  --ink-overdue: oklch(0.71 0.18 22);
+  --ink-expired: oklch(0.8 0.14 75);
 
-  --series-1: #2f9a74;
-  --series-2: #b8892a;
-  --chart-1: oklch(0.74 0.1 165);
-  --chart-2: oklch(0.82 0.14 80);
-  --chart-3: oklch(0.72 0.11 258);
-  --chart-4: oklch(0.7 0.16 25);
-  --chart-5: oklch(0.75 0.09 200);
+  /* Validated against the dark card surface. */
+  --series-1: #6c6ff2;
+  --series-2: #1aa89a;
+  --chart-1: oklch(0.673 0.182 277);
+  --chart-2: oklch(0.7 0.12 185);
+  --chart-3: oklch(0.75 0.11 223);
+  --chart-4: oklch(0.71 0.18 22);
+  --chart-5: oklch(0.8 0.14 75);
 
-  --sidebar: oklch(0.145 0.02 170);
-  --sidebar-foreground: oklch(0.86 0.02 160);
-  --sidebar-primary: oklch(0.82 0.14 80);
-  --sidebar-primary-foreground: oklch(0.22 0.05 70);
-  --sidebar-accent: oklch(0.22 0.03 168);
-  --sidebar-accent-foreground: oklch(0.97 0.01 160);
-  --sidebar-border: oklch(0.25 0.025 170);
-  --sidebar-ring: oklch(0.82 0.14 80);
+  --sidebar: oklch(0.13 0.006 286);
+  --sidebar-foreground: oklch(0.72 0.013 286);
+  --sidebar-primary: oklch(0.673 0.182 277);
+  --sidebar-primary-foreground: oklch(0.2 0.08 277);
+  --sidebar-accent: oklch(0.22 0.01 286);
+  --sidebar-accent-foreground: oklch(0.97 0.004 286);
+  --sidebar-border: oklch(0.25 0.008 286);
+  --sidebar-ring: oklch(0.673 0.182 277);
 }
 
 @layer base {
@@ -206,7 +206,7 @@
     font-feature-settings: "ss01", "cv01";
   }
   ::selection {
-    background: color-mix(in oklch, var(--saffron) 55%, transparent);
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
     color: var(--foreground);
   }
   input,
@@ -231,16 +231,17 @@
 
 /* A printed document stays paper-white in dark mode too (invoice previews, PDFs). */
 .paper {
-  --card: oklch(0.995 0.002 165);
-  --card-foreground: oklch(0.22 0.02 170);
-  --muted-foreground: oklch(0.47 0.02 170);
-  --border: oklch(0.885 0.01 165);
-  --ink-draft: oklch(0.5 0.012 170);
-  --ink-sent: oklch(0.46 0.13 258);
-  --ink-paid: oklch(0.48 0.11 155);
-  --ink-partial: oklch(0.5 0.09 200);
-  --ink-overdue: oklch(0.52 0.19 25);
-  --ink-expired: oklch(0.56 0.12 65);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 285);
+  --muted: oklch(0.967 0.003 286);
+  --muted-foreground: oklch(0.52 0.016 286);
+  --border: oklch(0.919 0.005 286);
+  --ink-draft: oklch(0.52 0.016 286);
+  --ink-sent: oklch(0.511 0.262 277);
+  --ink-paid: oklch(0.527 0.137 150);
+  --ink-partial: oklch(0.52 0.105 223);
+  --ink-overdue: oklch(0.577 0.215 27);
+  --ink-expired: oklch(0.555 0.135 66);
   color: var(--card-foreground);
 }
 

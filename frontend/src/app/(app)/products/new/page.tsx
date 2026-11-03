@@ -16,7 +16,7 @@ export default function NewProductPage() {
       <div className="mt-3">
         <PageHeader title="New product" />
       </div>
-      <div className="rounded-lg border bg-card p-5 sm:p-7">
+      <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
         <Suspense fallback={<Skeleton className="h-80 w-full" />}>
           <NewProduct />
         </Suspense>

@@ -5,7 +5,7 @@ import type { AuditEntry } from "@/lib/types";
 export function History({ entries }: { entries: AuditEntry[] }) {
   if (entries.length === 0) return null;
   return (
-    <section className="rounded-lg border bg-card p-5">
+    <section className="rounded-xl border bg-card shadow-xs p-5">
       <h2 className="text-sm font-semibold">History</h2>
       <ol className="mt-3 grid gap-3 border-s ps-4">
         {entries.map((e) => (

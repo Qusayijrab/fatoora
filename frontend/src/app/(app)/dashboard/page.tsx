@@ -1,6 +1,18 @@
-import { Building2, FileText, ReceiptText } from "lucide-react";
+import {
+  Activity,
+  AlarmClock,
+  Building2,
+  CircleDollarSign,
+  FileText,
+  Hourglass,
+  ReceiptText,
+  TrendingUp,
+  UsersRound,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -97,29 +109,34 @@ async function Dashboard() {
       <Ledger overview={overview} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <section className="rounded-lg border bg-card p-5 sm:p-6" aria-labelledby="chart-title">
-          <h2 id="chart-title" className="mb-4 text-base font-semibold">
+        <section className="rounded-xl border bg-card shadow-xs p-5 sm:p-6" aria-labelledby="chart-title">
+          <SectionTitle id="chart-title" icon={TrendingUp} className="mb-4">
             Invoiced and collected, last 12 months
-          </h2>
+          </SectionTitle>
           <MoneyChart months={overview.months} currency={overview.baseCurrency} decimals={currencyDecimals(overview.baseCurrency)} />
         </section>
         <Aging overview={overview} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border bg-card p-5 sm:p-6" aria-labelledby="owed-title">
-          <h2 id="owed-title" className="text-base font-semibold">
+        <section className="rounded-xl border bg-card shadow-xs p-5 sm:p-6" aria-labelledby="owed-title">
+          <SectionTitle id="owed-title" icon={UsersRound}>
             Who owes the most
-          </h2>
+          </SectionTitle>
           {overview.topClients.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">Nobody owes you anything right now.</p>
           ) : (
             <ul className="mt-3 divide-y">
               {overview.topClients.map((c) => (
-                <li key={c.clientId} className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                  <Link href={`/invoices?q=${encodeURIComponent(c.name)}`} className="min-w-0 truncate font-medium hover:underline" dir="auto">
-                    {c.name}
-                  </Link>
+                <li key={c.clientId} className="flex items-center justify-between gap-4 py-2.5 text-sm">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {c.name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <Link href={`/invoices?q=${encodeURIComponent(c.name)}`} className="min-w-0 truncate font-medium hover:underline" dir="auto">
+                      {c.name}
+                    </Link>
+                  </span>
                   <span className="figures shrink-0">
                     {formatAmount(c.outstanding.amount)}
                     <span className="ms-2 text-xs text-muted-foreground">
@@ -131,11 +148,11 @@ async function Dashboard() {
             </ul>
           )}
         </section>
-        <section className="rounded-lg border bg-card p-5 sm:p-6" aria-labelledby="activity-title">
+        <section className="rounded-xl border bg-card shadow-xs p-5 sm:p-6" aria-labelledby="activity-title">
           <div className="flex items-baseline justify-between">
-            <h2 id="activity-title" className="text-base font-semibold">
+            <SectionTitle id="activity-title" icon={Activity}>
               Recent activity
-            </h2>
+            </SectionTitle>
             <Link href="/settings/audit" className="text-xs text-muted-foreground hover:text-foreground">
               Full audit log
             </Link>
@@ -143,8 +160,11 @@ async function Dashboard() {
           <ul className="mt-3 divide-y">
             {overview.activity.map((a, i) => (
               <li key={i} className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                <span className="min-w-0" dir="auto">
-                  {a.summary}
+                <span className="flex min-w-0 items-baseline gap-2.5">
+                  <span aria-hidden className="size-1.5 shrink-0 -translate-y-px rounded-full bg-primary/60" />
+                  <span className="min-w-0" dir="auto">
+                    {a.summary}
+                  </span>
                 </span>
                 <time className="figures shrink-0 text-xs text-muted-foreground" dateTime={a.at}>
                   {timeAgo(a.at)}
@@ -160,30 +180,41 @@ async function Dashboard() {
   );
 }
 
-/** The four headline figures as one ruled strip (not four floating cards). */
+/** A card heading with a small icon tile, so each panel is recognisable at a glance. */
+function SectionTitle({ id, icon: Icon, className, children }: { id: string; icon: LucideIcon; className?: string; children: ReactNode }) {
+  return (
+    <h2 id={id} className={cn("flex items-center gap-2.5 text-base font-semibold", className)}>
+      <span aria-hidden className="grid size-7 place-items-center rounded-md bg-primary/10 text-primary">
+        <Icon className="size-4" strokeWidth={2} />
+      </span>
+      {children}
+    </h2>
+  );
+}
+
+/** The four headline figures as cards, each with an icon tile in its own tone. */
 function Ledger({ overview }: { overview: Overview }) {
-  const cells: { label: string; value: Money; note: string; tone?: "alert"; href: string }[] = [
-    { label: "Outstanding", value: overview.outstanding, note: `${overview.openInvoices} open ${overview.openInvoices === 1 ? "invoice" : "invoices"}`, href: "/invoices?status=ISSUED" },
-    { label: "Overdue", value: overview.overdue, note: `${overview.overdueInvoices} past due`, tone: overview.overdueInvoices > 0 ? "alert" : undefined, href: "/invoices?status=OVERDUE" },
-    { label: "Collected this month", value: overview.collectedThisMonth, note: "payments received", href: "/invoices?status=PAID" },
-    { label: "Invoiced this month", value: overview.invoicedThisMonth, note: `${overview.drafts} drafts · ${overview.quotesAwaitingAnswer} quotes awaiting`, href: "/invoices" },
+  const cells: { label: string; value: Money; note: string; icon: LucideIcon; tone: string; alert?: boolean; href: string }[] = [
+    { label: "Outstanding", value: overview.outstanding, note: `${overview.openInvoices} open ${overview.openInvoices === 1 ? "invoice" : "invoices"}`, icon: Wallet, tone: "bg-primary/10 text-primary", href: "/invoices?status=ISSUED" },
+    { label: "Overdue", value: overview.overdue, note: `${overview.overdueInvoices} past due`, icon: AlarmClock, tone: "bg-ink-overdue/10 text-ink-overdue", alert: overview.overdueInvoices > 0, href: "/invoices?status=OVERDUE" },
+    { label: "Collected this month", value: overview.collectedThisMonth, note: "payments received", icon: CircleDollarSign, tone: "bg-ink-paid/12 text-ink-paid", href: "/invoices?status=PAID" },
+    { label: "Invoiced this month", value: overview.invoicedThisMonth, note: `${overview.drafts} drafts · ${overview.quotesAwaitingAnswer} quotes awaiting`, icon: ReceiptText, tone: "bg-ink-partial/12 text-ink-partial", href: "/invoices" },
   ];
   return (
-    <section aria-label="Totals" className="grid overflow-hidden rounded-lg border bg-card sm:grid-cols-2 lg:grid-cols-4">
+    <section aria-label="Totals" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cells.map((c, i) => (
         <Link
           key={c.label}
           href={c.href}
-          className={cn(
-            "group grid gap-1 px-5 py-4 transition-colors duration-150 hover:bg-muted/50",
-            i > 0 && "border-t sm:border-t-0",
-            i % 2 === 1 && "sm:border-s",
-            i >= 2 && "sm:border-t lg:border-t-0",
-            i === 2 && "lg:border-s",
-          )}
+          className="grid gap-2 rounded-xl border bg-card p-4 shadow-xs transition sm:gap-3 sm:p-5-[box-shadow,border-color] duration-150 hover:border-primary/30 hover:shadow-md"
         >
-          <span className="text-xs font-medium text-muted-foreground">{c.label}</span>
-          <span className={cn("figures text-xl font-semibold tracking-tight", c.tone === "alert" && "text-ink-overdue")} data-testid={`ledger-${i}`}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium text-muted-foreground">{c.label}</span>
+            <span aria-hidden className={cn("grid size-9 place-items-center rounded-lg", c.tone)}>
+              <c.icon className="size-[18px]" strokeWidth={2} />
+            </span>
+          </div>
+          <span className={cn("figures text-2xl font-semibold tracking-tight", c.alert && "text-ink-overdue")} data-testid={`ledger-${i}`}>
             {formatMoney(c.value)}
           </span>
           <span className="text-xs text-muted-foreground">{c.note}</span>
@@ -197,10 +228,10 @@ function Ledger({ overview }: { overview: Overview }) {
 function Aging({ overview }: { overview: Overview }) {
   const max = Math.max(1, ...overview.aging.map((b) => b.amount.amountMinor));
   return (
-    <section className="rounded-lg border bg-card p-5 sm:p-6" aria-labelledby="aging-title">
-      <h2 id="aging-title" className="text-base font-semibold">
+    <section className="rounded-xl border bg-card shadow-xs p-5 sm:p-6" aria-labelledby="aging-title">
+      <SectionTitle id="aging-title" icon={Hourglass}>
         Unpaid, by how late
-      </h2>
+      </SectionTitle>
       <ul className="mt-4 grid gap-3">
         {overview.aging.map((b, i) => (
           <li key={b.label} className="grid gap-1">

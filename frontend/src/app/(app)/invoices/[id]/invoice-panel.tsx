@@ -52,7 +52,7 @@ export function InvoicePanel({
   return (
     <aside className="grid gap-4 lg:sticky lg:top-6">
       {isInvoice && (
-        <section className="rounded-lg border bg-card p-5">
+        <section className="rounded-xl border bg-card shadow-xs p-5">
           <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Balance due</p>
           <p className="figures mt-1 text-2xl font-semibold" data-testid="balance-due">
             {invoice.status === "VOID" ? "—" : formatMoney(invoice.balanceDue)}
@@ -96,7 +96,7 @@ export function InvoicePanel({
       {isInvoice && open && <PaymentLinkBox invoiceId={invoice.id} />}
 
       {invoice.payments.length > 0 && (
-        <section className="rounded-lg border bg-card p-5">
+        <section className="rounded-xl border bg-card shadow-xs p-5">
           <h2 className="text-sm font-semibold">Payments</h2>
           <ul className="mt-3 divide-y text-sm">
             {invoice.payments.map((p) => (
@@ -116,7 +116,7 @@ export function InvoicePanel({
       )}
 
       {invoice.creditNotes.length > 0 && (
-        <section className="rounded-lg border bg-card p-5">
+        <section className="rounded-xl border bg-card shadow-xs p-5">
           <h2 className="text-sm font-semibold">Credit notes</h2>
           <ul className="mt-3 divide-y text-sm">
             {invoice.creditNotes.map((cn) => (
@@ -135,7 +135,7 @@ export function InvoicePanel({
       )}
 
       {invoice.status === "VOID" && (
-        <section className="rounded-lg border border-dashed bg-card p-5 text-sm">
+        <section className="rounded-xl border border-dashed bg-card p-5 text-sm">
           <p className="font-medium">Voided {formatDate(invoice.voidedAt)}</p>
           <p className="mt-1 text-muted-foreground">{invoice.voidReason}</p>
         </section>
@@ -323,7 +323,7 @@ function PaymentLinkBox({ invoiceId }: { invoiceId: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <section className="grid gap-2 rounded-lg border bg-card p-5">
+    <section className="grid gap-2 rounded-xl border bg-card shadow-xs p-5">
       <h2 className="text-sm font-semibold">Online payment</h2>
       {url ? (
         <>

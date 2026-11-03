@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { StatusTabs } from "@/components/status-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,7 +91,7 @@ async function InvoiceList({ searchParams }: { searchParams: Promise<Search> }) 
           </div>
         </Form>
       </div>
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -131,7 +131,7 @@ async function InvoiceList({ searchParams }: { searchParams: Promise<Search> }) 
                   {inv.status === "VOID" || inv.status === "DRAFT" ? "—" : formatAmount(inv.balanceDue.amount)}
                 </TableCell>
                 <TableCell className="pe-5 text-end">
-                  <StatusStamp status={inv.status} />
+                  <StatusBadge status={inv.status} />
                 </TableCell>
               </TableRow>
             ))}

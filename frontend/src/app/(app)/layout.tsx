@@ -6,7 +6,7 @@ import { AppSidebar } from "./app-sidebar";
 import { SidebarOrgSlot, SidebarSlotSkeleton, SidebarUserSlot } from "./sidebar-slots";
 
 /**
- * The app frame. The cedar sidebar and nav are static and render instantly; the org
+ * The app frame. The sidebar and nav are static and render instantly; the org
  * switcher and user menu read the session cookie, so each streams in behind its own
  * <Suspense> (with Cache Components, reading cookies outside a boundary is a build error).
  */
@@ -16,12 +16,12 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <AppSidebar
         header={
           <>
-            <Link href="/dashboard" className="flex items-center gap-2.5 px-1 text-sidebar-accent-foreground">
-              <LogoMark className="size-7" inverted />
+            <Link href="/dashboard" className="flex items-center gap-2.5 px-1 text-foreground">
+              <LogoMark className="size-7" />
               <span className="text-[1.05rem] font-semibold tracking-[-0.02em] group-data-[collapsible=icon]:hidden">
                 Fatoora
               </span>
-              <span lang="ar" dir="rtl" className="text-sm opacity-60 group-data-[collapsible=icon]:hidden">
+              <span lang="ar" dir="rtl" className="text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
                 فاتورة
               </span>
             </Link>

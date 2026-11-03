@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { PASSWORD, register, uniqueEmail } from "./helpers";
 
-test("landing page lets a visitor stamp the example invoice", async ({ page }) => {
+test("landing page lets a visitor walk the example invoice through its states", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("From done");
   await page.getByRole("button", { name: "Void" }).click();

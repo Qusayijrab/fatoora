@@ -18,7 +18,7 @@ export function RatesEditor({ rates, base, canEdit }: { rates: ExchangeRate[]; b
   return (
     <div className="grid gap-6">
       {canEdit && (
-        <form action={action} className="grid gap-4 rounded-lg border bg-card p-5 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+        <form action={action} className="grid gap-4 rounded-xl border bg-card shadow-xs p-5 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
           <CurrencyField state={state} label="Currency" defaultValue={base === "USD" ? "EUR" : "USD"} />
           <TextField name="rate" label={`1 unit = how many ${base}`} state={state} inputMode="decimal" className="figures" required />
           <TextField name="effectiveDate" label="From (optional)" type="date" state={state} className="figures" />
@@ -29,7 +29,7 @@ export function RatesEditor({ rates, base, canEdit }: { rates: ExchangeRate[]; b
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         {rates.length === 0 ? (
           <p className="px-5 py-8 text-sm text-muted-foreground">
             No rates of your own. Pegged Gulf currencies and USD work out of the box; add a rate here to use your bank&apos;s

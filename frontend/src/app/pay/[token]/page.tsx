@@ -1,7 +1,7 @@
 import { CircleCheck, FileDown, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
@@ -26,7 +26,7 @@ async function Pay({ params, searchParams }: { params: Promise<{ token: string }
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
       return (
-        <div className="rounded-lg border bg-card p-8 text-center">
+        <div className="rounded-xl border bg-card shadow-xs p-8 text-center">
           <h1 className="text-xl font-semibold">This link is not valid</h1>
           <p className="mt-2 text-sm text-muted-foreground">Ask the business that sent it for a new one.</p>
         </div>
@@ -37,8 +37,8 @@ async function Pay({ params, searchParams }: { params: Promise<{ token: string }
 
   const paid = invoice.status === "PAID";
   return (
-    <article className="overflow-hidden rounded-lg border bg-card shadow-[0_20px_50px_-24px_oklch(0.15_0.03_170/0.35)]">
-      <header className="bg-cedar px-6 py-6 text-cedar-foreground sm:px-8">
+    <article className="overflow-hidden rounded-xl border bg-card shadow-xs shadow-[0_20px_50px_-24px_oklch(0.15_0.03_170/0.35)]">
+      <header className="bg-brand px-6 py-6 text-brand-foreground sm:px-8">
         <p className="text-sm opacity-80" dir="auto">
           {invoice.organizationName}
         </p>
@@ -50,7 +50,7 @@ async function Pay({ params, searchParams }: { params: Promise<{ token: string }
           {invoice.dueDate && <> · due {formatDate(invoice.dueDate)}</>}
         </p>
       </header>
-      <div className="h-1 bg-saffron" />
+      <div className="h-1 bg-primary" />
 
       <div className="grid gap-6 p-6 sm:p-8">
         {status === "success" && (
@@ -73,7 +73,7 @@ async function Pay({ params, searchParams }: { params: Promise<{ token: string }
               {paid ? formatMoney(invoice.total) : formatMoney(invoice.balanceDue)}
             </p>
           </div>
-          <StatusStamp status={invoice.status} size="lg" />
+          <StatusBadge status={invoice.status} size="lg" />
         </div>
 
         {invoice.payable && <PayButton token={token} amount={formatMoney(invoice.balanceDue)} provider={invoice.provider} />}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getClient } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -33,7 +33,7 @@ async function ClientDetail({ params }: { params: Promise<{ id: string }> }) {
           title={
             <span className="inline-flex flex-wrap items-center gap-3">
               {client.name}
-              {client.archived && <StatusStamp status="VOID" label="Archived" />}
+              {client.archived && <StatusBadge status="VOID" label="Archived" />}
             </span>
           }
           description={`Client since ${formatDate(client.createdAt)}`}
@@ -42,7 +42,7 @@ async function ClientDetail({ params }: { params: Promise<{ id: string }> }) {
       </div>
       <div className="grid gap-6">
         {!client.archived && <PortalBox clientId={client.id} />}
-        <div className="rounded-lg border bg-card p-5 sm:p-7">
+        <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
           <ClientForm key={client.id} client={client} />
         </div>
       </div>

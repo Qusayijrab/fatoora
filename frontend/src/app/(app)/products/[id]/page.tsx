@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getMe, getProduct, getTaxRates } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
@@ -32,7 +32,7 @@ async function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
           title={
             <span className="inline-flex flex-wrap items-center gap-3">
               {product.name}
-              {product.archived && <StatusStamp status="VOID" label="Archived" />}
+              {product.archived && <StatusBadge status="VOID" label="Archived" />}
             </span>
           }
           description={
@@ -43,7 +43,7 @@ async function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
           actions={<ArchiveProductButton id={product.id} name={product.name} archived={product.archived} />}
         />
       </div>
-      <div className="rounded-lg border bg-card p-5 sm:p-7">
+      <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
         <ProductForm
           key={product.id}
           product={product}

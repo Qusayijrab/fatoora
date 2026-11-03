@@ -29,7 +29,7 @@ async function Checkout({ params }: { params: Promise<{ sessionId: string }> }) 
     checkout = await api<MockCheckout>(`/public/mock-checkout/${encodeURIComponent(sessionId)}`, { auth: false });
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
-      return <p className="rounded-lg border bg-card p-8 text-center">This checkout does not exist.</p>;
+      return <p className="rounded-xl border bg-card shadow-xs p-8 text-center">This checkout does not exist.</p>;
     }
     throw e;
   }

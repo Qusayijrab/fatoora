@@ -81,9 +81,9 @@ public final class DocumentViews {
 
     // Stamp inks match the app's document-state colors.
     private static final String GREEN = "#2f7a52";
-    private static final String TEAL = "#2b7a86";
+    private static final String TEAL = "#0e7490";
     private static final String RED = "#b5322f";
-    private static final String GRAPHITE = "#6b7470";
+    private static final String GRAPHITE = "#71717a";
     private static final String AMBER = "#a8741c";
 
     private static String[] invoiceStamp(InvoiceStatus s) {

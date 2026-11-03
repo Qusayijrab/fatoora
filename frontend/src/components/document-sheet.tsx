@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { countryName } from "@/lib/countries";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
 import type { Line, Money, Party } from "@/lib/types";
 
 /**
  * A document as the client sees it: a paper-white sheet that stays white in dark mode,
- * with its state stamped on it. Used for issued invoices, sent quotes, and the client
+ * with its state shown under the number. Used for issued invoices, sent quotes, and the client
  * portal; the PDF template mirrors this layout.
  */
 export function DocumentSheet({
@@ -39,8 +39,8 @@ export function DocumentSheet({
   terms?: string | null;
 }) {
   return (
-    <article className="paper relative overflow-hidden rounded-md border bg-card text-card-foreground shadow-[0_20px_50px_-24px_oklch(0.15_0.03_170/0.4)]">
-      <div className="h-1.5 bg-cedar" />
+    <article className="paper relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-[0_20px_50px_-24px_oklch(0.2_0.08_277/0.35)]">
+      <div className="h-1.5 bg-primary" />
       <div className="grid gap-8 p-6 sm:p-10">
         <header className="flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
@@ -54,6 +54,7 @@ export function DocumentSheet({
                 <Row key={d.label} label={d.label} value={formatDate(d.value)} />
               ))}
             </dl>
+            {status !== "DRAFT" && <StatusBadge status={status} className="mt-3" />}
           </div>
         </header>
 
@@ -115,12 +116,6 @@ export function DocumentSheet({
           </footer>
         )}
       </div>
-
-      {status !== "DRAFT" && (
-        <div className="pointer-events-none absolute end-8 top-28 sm:end-14 sm:top-32">
-          <StatusStamp status={status} size="lg" className="bg-card/80" />
-        </div>
-      )}
     </article>
   );
 }

@@ -43,10 +43,10 @@ export function OrgSwitcher({ organizations, current }: { organizations: Organiz
               size="lg"
               aria-label="Switch organization"
               data-testid="org-switcher"
-              className="border border-sidebar-border bg-sidebar-accent/40 data-[state=open]:bg-sidebar-accent"
+              className="rounded-lg border border-sidebar-border bg-sidebar-accent shadow-xs data-[state=open]:bg-sidebar-accent"
               disabled={pending}
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-[4px] bg-saffron text-xs font-semibold text-saffron-foreground">
+              <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
                 {current ? initials(current.name) : "?"}
               </span>
               <span className="grid min-w-0 flex-1 text-start leading-tight">
@@ -64,7 +64,7 @@ export function OrgSwitcher({ organizations, current }: { organizations: Organiz
             <DropdownMenuLabel className="text-xs text-muted-foreground">Your organizations</DropdownMenuLabel>
             {organizations.map((org) => (
               <DropdownMenuItem key={org.id} onSelect={() => choose(org.id)} className="gap-2.5">
-                <span className="grid size-6 place-items-center rounded-[3px] bg-secondary text-[10px] font-semibold">
+                <span className="grid size-6 place-items-center rounded-md bg-secondary text-[10px] font-semibold text-secondary-foreground">
                   {initials(org.name)}
                 </span>
                 <span className="flex-1 truncate">{org.name}</span>

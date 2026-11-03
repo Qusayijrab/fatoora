@@ -16,7 +16,7 @@ export default function NewRecurringPage() {
       <div className="mt-3">
         <PageHeader title="New recurring invoice" />
       </div>
-      <div className="rounded-lg border bg-card p-5 sm:p-7">
+      <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
         <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <Form />
         </Suspense>

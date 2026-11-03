@@ -13,7 +13,7 @@ export default function NewClientPage() {
       <div className="mt-3">
         <PageHeader title="New client" />
       </div>
-      <div className="rounded-lg border bg-card p-5 sm:p-7">
+      <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
         <ClientForm />
       </div>
     </div>

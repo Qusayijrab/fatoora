@@ -16,7 +16,7 @@ export default function NewInvoicePage({ searchParams }: PageProps<"/invoices/ne
       <div className="mt-3">
         <PageHeader title="New invoice" description="Saved as a draft. It gets its number when you issue it." />
       </div>
-      <div className="rounded-lg border bg-card p-5 sm:p-7">
+      <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
         <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <Editor searchParams={searchParams as Promise<{ client?: string }>} />
         </Suspense>

@@ -5,7 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { FormError } from "@/components/form-error";
 import { FormField } from "@/components/form-field";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
@@ -19,7 +19,7 @@ export function TaxRateRows({ rates, canEdit }: { rates: TaxRate[]; canEdit: boo
 
   return (
     <div className="grid gap-4">
-      <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+      <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs">
         {rates.length === 0 && editing !== "new" && (
           <li className="px-5 py-8 text-sm text-muted-foreground">
             No tax rates yet. In Jordan the general sales tax is 16%; add the rates you charge.
@@ -38,8 +38,8 @@ export function TaxRateRows({ rates, canEdit }: { rates: TaxRate[]; canEdit: boo
             >
               <span className="figures w-16 text-lg font-semibold tabular-nums">{rate.rate}%</span>
               <span className="min-w-0 flex-1 font-medium">{rate.name}</span>
-              {rate.isDefault && <StatusStamp status="ACCEPTED" label="Default" />}
-              {rate.archived && <StatusStamp status="VOID" label="Archived" />}
+              {rate.isDefault && <StatusBadge status="ACCEPTED" label="Default" />}
+              {rate.archived && <StatusBadge status="VOID" label="Archived" />}
               {canEdit && (
                 <span className="flex gap-1">
                   {!rate.archived && (

@@ -14,7 +14,7 @@ export function StatusTabs({
   q?: string;
 }) {
   return (
-    <nav aria-label="Filter by status" className="-mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1">
+    <nav aria-label="Filter by status" className="mb-4 flex max-w-full gap-0.5 overflow-x-auto rounded-lg bg-muted p-1 ring-1 ring-border/60 [scrollbar-width:none]">
       {tabs.map((t) => {
         const active = (t.value ?? "") === (current ?? "");
         const params = new URLSearchParams();
@@ -27,8 +27,8 @@ export function StatusTabs({
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
-              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              "whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-colors duration-150",
+              active ? "bg-card text-foreground shadow-xs ring-1 ring-border/70" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {t.label}

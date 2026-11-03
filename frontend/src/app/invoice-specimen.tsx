@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { cn } from "@/lib/utils";
 
 const STATES = [
@@ -13,8 +13,8 @@ const STATES = [
 ] as const;
 
 /**
- * The landing page's signature interaction: an example invoice the visitor stamps
- * through its real lifecycle. Each press re-mounts the stamp so the ink lands again.
+ * The landing page's signature interaction: an example invoice the visitor walks
+ * through its real lifecycle. Each press re-mounts the badge so it pops in again.
  */
 export function InvoiceSpecimen() {
   const [index, setIndex] = useState(3);
@@ -24,8 +24,8 @@ export function InvoiceSpecimen() {
 
   return (
     <figure className="relative">
-      <div className="paper relative overflow-hidden rounded-md bg-card text-card-foreground shadow-[0_30px_60px_-20px_oklch(0.15_0.03_170/0.55),0_2px_6px_oklch(0.15_0.03_170/0.2)]">
-        <div className="h-1.5 bg-saffron" />
+      <div className="paper relative overflow-hidden rounded-xl bg-card text-card-foreground shadow-[0_30px_60px_-20px_oklch(0.1_0.08_277/0.6),0_2px_6px_oklch(0.1_0.08_277/0.25)]">
+        <div className="h-1.5 bg-primary" />
         <div className="grid gap-6 p-6 sm:p-8">
           <header className="flex items-start justify-between gap-4">
             <div>
@@ -39,6 +39,7 @@ export function InvoiceSpecimen() {
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Invoice</p>
               <p className="figures mt-0.5 font-mono text-sm font-medium">{numbered ? "INV-2026-0042" : "— draft —"}</p>
               <p className="figures mt-0.5 text-xs text-muted-foreground">Due 30 Nov 2026</p>
+              <StatusBadge key={`${state.status}-${presses}`} status={state.status} fresh className="mt-2" />
             </div>
           </header>
 
@@ -88,14 +89,10 @@ export function InvoiceSpecimen() {
             </tfoot>
           </table>
         </div>
-
-        <div className="pointer-events-none absolute end-6 top-24 sm:end-10 sm:top-28">
-          <StatusStamp key={`${state.status}-${presses}`} status={state.status} size="lg" fresh className="bg-card/70 text-base" />
-        </div>
       </div>
 
       <figcaption className="mt-4">
-        <div role="group" aria-label="Stamp the example invoice" className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label="Move the example invoice through its states" className="flex flex-wrap gap-1.5">
           {STATES.map((s, i) => (
             <button
               key={s.status}
@@ -106,15 +103,15 @@ export function InvoiceSpecimen() {
                 setPresses((p) => p + 1);
               }}
               className={cn(
-                "rounded-[4px] border border-cedar-foreground/25 px-3 py-1.5 text-xs font-medium text-cedar-foreground transition-colors duration-150 hover:bg-cedar-foreground/10",
-                i === index && "border-saffron bg-saffron text-saffron-foreground hover:bg-saffron",
+                "rounded-full border border-brand-foreground/25 px-3.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors duration-150 hover:bg-brand-foreground/10",
+                i === index && "border-brand-foreground bg-brand-foreground text-brand hover:bg-brand-foreground",
               )}
             >
               {s.label}
             </button>
           ))}
         </div>
-        <p className="mt-2 min-h-5 text-xs text-cedar-foreground/75" aria-live="polite">
+        <p className="mt-2 min-h-5 text-xs text-brand-foreground/75" aria-live="polite">
           {state.note} <span className="opacity-70">Example invoice.</span>
         </p>
       </figcaption>

@@ -24,7 +24,7 @@ export default function OrganizationSettingsPage() {
 async function Settings() {
   const org = await getCurrentOrganization();
   return (
-    <div className="rounded-lg border bg-card p-5 sm:p-7">
+    <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
       <OrganizationForm org={org} canEdit={canManageMembers(org.role)} />
     </div>
   );

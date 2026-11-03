@@ -51,7 +51,7 @@ export function DocumentDelivery({
   }
 
   return (
-    <section className="grid gap-2 rounded-lg border bg-card p-5">
+    <section className="grid gap-2 rounded-xl border bg-card shadow-xs p-5">
       <h2 className="text-sm font-semibold">Send</h2>
       <Button asChild variant="outline" className="justify-start">
         <a href={`/${kind}/${id}/pdf`} target="_blank" rel="noopener">

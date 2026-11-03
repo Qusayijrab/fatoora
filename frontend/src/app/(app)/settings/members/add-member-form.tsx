@@ -17,7 +17,7 @@ export function AddMemberForm({ actorRole }: { actorRole: Role }) {
   const roles = ROLES.filter((r) => r !== "OWNER" || actorRole === "OWNER");
 
   return (
-    <form action={action} className="rounded-lg border bg-card p-4 sm:p-5">
+    <form action={action} className="rounded-xl border bg-card shadow-xs p-4 sm:p-5">
       <div className="grid gap-3 sm:grid-cols-[1fr_9rem_auto] sm:items-end">
         <div className="grid gap-1.5">
           <Label htmlFor="member-email">Add a member by email</Label>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { StatusTabs } from "@/components/status-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,7 +66,7 @@ async function QuoteList({ searchParams }: { searchParams: Promise<{ status?: st
   return (
     <>
       <StatusTabs base="/quotes" current={status} tabs={TABS} />
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -102,7 +102,7 @@ async function QuoteList({ searchParams }: { searchParams: Promise<{ status?: st
                   <span className="text-muted-foreground">{q.currency}</span> {formatAmount(q.total.amount)}
                 </TableCell>
                 <TableCell className="pe-5 text-end">
-                  <StatusStamp status={q.convertedInvoiceId ? "CONVERTED" : q.status} label={q.convertedInvoiceId ? "Invoiced" : undefined} />
+                  <StatusBadge status={q.convertedInvoiceId ? "CONVERTED" : q.status} label={q.convertedInvoiceId ? "Invoiced" : undefined} />
                 </TableCell>
               </TableRow>
             ))}

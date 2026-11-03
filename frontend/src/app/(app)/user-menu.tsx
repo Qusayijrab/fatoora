@@ -31,7 +31,7 @@ export function UserMenu({ fullName, email }: { fullName: string; email: string 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" aria-label="Account menu" className="data-[state=open]:bg-sidebar-accent">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full border border-sidebar-border text-xs font-semibold text-sidebar-accent-foreground">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                 {initials}
               </span>
               <span className="grid min-w-0 flex-1 text-start leading-tight">

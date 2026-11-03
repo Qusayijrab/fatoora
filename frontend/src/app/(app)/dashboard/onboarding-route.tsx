@@ -12,8 +12,8 @@ export type RouteStep = {
 };
 
 /**
- * "From work to paid": the whole product as one route. Finished legs are stamped,
- * the next leg is lit in saffron, later legs wait. The order is the workflow, so
+ * "From work to paid": the whole product as one route. Finished legs are checked,
+ * the next leg is lit in indigo, later legs wait. The order is the workflow, so
  * the sequence itself carries meaning.
  */
 export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
@@ -21,14 +21,19 @@ export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
-    <section aria-labelledby="route-title" className="@container overflow-hidden rounded-lg border bg-card">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b px-5 py-4 sm:px-6">
-        <h2 id="route-title" className="text-base font-semibold">
-          From work to paid
-        </h2>
-        <p className="figures text-sm text-muted-foreground">
-          {doneCount} of {steps.length} done
-        </p>
+    <section aria-labelledby="route-title" className="@container overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="grid gap-3 border-b px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="route-title" className="text-base font-semibold">
+            From work to paid
+          </h2>
+          <p className="figures text-sm text-muted-foreground">
+            {doneCount} of {steps.length} done
+          </p>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
+          <div className="h-full rounded-full bg-primary" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+        </div>
       </div>
       <ol className="grid divide-y @min-[52rem]:grid-cols-7 @min-[52rem]:divide-x @min-[52rem]:divide-y-0">
         {steps.map((step, i) => {
@@ -40,15 +45,15 @@ export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
               data-done={step.done}
               className={cn(
                 "relative flex gap-3 px-5 py-4 @min-[52rem]:flex-col @min-[52rem]:gap-2 @min-[52rem]:px-4 @min-[52rem]:py-5",
-                isNext && "bg-saffron/12",
+                isNext && "bg-primary/5",
               )}
             >
-              {isNext && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px] bg-saffron @min-[52rem]:inset-x-0 @min-[52rem]:bottom-auto @min-[52rem]:h-[3px] @min-[52rem]:w-auto" />}
+              {isNext && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px] bg-primary @min-[52rem]:inset-x-0 @min-[52rem]:bottom-auto @min-[52rem]:h-[3px] @min-[52rem]:w-auto" />}
               <span
                 className={cn(
                   "figures grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold",
-                  step.done && "border-primary bg-primary text-primary-foreground",
-                  isNext && "border-saffron-foreground/40 bg-saffron text-saffron-foreground",
+                  step.done && "border-transparent bg-ink-paid/15 text-ink-paid",
+                  isNext && "border-primary bg-primary text-primary-foreground",
                   !step.done && !isNext && "text-muted-foreground",
                 )}
               >
@@ -62,7 +67,7 @@ export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
                     href={step.href}
                     className={cn(
                       "mt-2 inline-flex items-center gap-1 text-xs font-medium",
-                      isNext ? "text-foreground underline decoration-saffron decoration-2" : "text-primary hover:underline",
+                      isNext ? "rounded-md bg-primary px-2.5 py-1 text-primary-foreground shadow-xs hover:bg-primary/90" : "text-primary hover:underline",
                     )}
                   >
                     {step.cta}

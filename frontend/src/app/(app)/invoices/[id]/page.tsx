@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { DocumentDelivery } from "@/components/document-delivery";
 import { DocumentSheet } from "@/components/document-sheet";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { History } from "@/components/history";
 import { getAudit, getEditorData, getInvoice, getMe } from "@/lib/api";
@@ -39,13 +39,13 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
           <PageHeader
             title={
               <span className="inline-flex items-center gap-3">
-                Draft invoice <StatusStamp status="DRAFT" />
+                Draft invoice <StatusBadge status="DRAFT" />
               </span>
             }
             description={`For ${invoice.client.name}. Edit freely; issuing gives it the next number and locks it.`}
           />
         </div>
-        <div className="rounded-lg border bg-card p-5 sm:p-7">
+        <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
           <DraftInvoiceEditor invoice={invoice} data={data} />
         </div>
       </>
@@ -59,7 +59,7 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
           title={
             <span className="figures inline-flex flex-wrap items-center gap-3 font-mono">
               {invoice.number}
-              <StatusStamp status={invoice.status} />
+              <StatusBadge status={invoice.status} />
             </span>
           }
           description={

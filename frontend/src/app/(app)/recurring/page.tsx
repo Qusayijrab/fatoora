@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,7 +53,7 @@ async function RecurringList() {
     );
   }
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -79,7 +79,7 @@ async function RecurringList() {
               <TableCell className="figures">{r.nextRunDate ? formatDate(r.nextRunDate) : "—"}</TableCell>
               <TableCell className="figures text-end whitespace-nowrap">{formatMoney(r.total)}</TableCell>
               <TableCell className="pe-5 text-end">
-                <StatusStamp status={r.status} />
+                <StatusBadge status={r.status} />
               </TableCell>
             </TableRow>
           ))}

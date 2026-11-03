@@ -10,7 +10,7 @@ export default function NewOrganizationPage() {
         title="New organization"
         description="A separate business with its own clients, numbering and members. You will be its owner, and we switch you to it."
       />
-      <div className="rounded-lg border bg-card p-5 sm:p-6">
+      <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-6">
         <NewOrganizationForm />
       </div>
     </div>

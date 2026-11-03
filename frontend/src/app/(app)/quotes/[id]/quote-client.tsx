@@ -76,7 +76,7 @@ export function QuotePanel({ quote }: { quote: Quote }) {
 
   return (
     <aside className="grid gap-4">
-      <section className="rounded-lg border bg-card p-5">
+      <section className="rounded-xl border bg-card shadow-xs p-5">
         <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Quoted</p>
         <p className="figures mt-1 text-2xl font-semibold">{formatMoney(quote.total)}</p>
         <p className="mt-1 text-sm text-muted-foreground">Valid until {formatDate(quote.validUntil)}</p>

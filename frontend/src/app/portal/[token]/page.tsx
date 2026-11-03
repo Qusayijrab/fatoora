@@ -2,7 +2,7 @@ import { FileDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
@@ -27,7 +27,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
       return (
-        <div className="rounded-lg border bg-card p-8 text-center">
+        <div className="rounded-xl border bg-card shadow-xs p-8 text-center">
           <h1 className="text-xl font-semibold">This link is not valid</h1>
           <p className="mt-2 text-sm text-muted-foreground">It may have been replaced. Ask the business for a new one.</p>
         </div>
@@ -41,8 +41,8 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
 
   return (
     <div className="grid gap-6">
-      <header className="overflow-hidden rounded-lg border bg-card">
-        <div className="bg-cedar px-6 py-6 text-cedar-foreground sm:px-8">
+      <header className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="bg-brand px-6 py-6 text-brand-foreground sm:px-8">
           <p className="text-sm opacity-80" dir="auto">
             {view.organizationName}
           </p>
@@ -50,7 +50,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
             Documents for {view.clientName}
           </h1>
         </div>
-        <div className="h-1 bg-saffron" />
+        <div className="h-1 bg-primary" />
         <div className="flex flex-wrap items-end justify-between gap-4 px-6 py-5 sm:px-8">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">You owe</p>
@@ -66,7 +66,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
         </div>
       </header>
 
-      <section className="rounded-lg border bg-card" aria-labelledby="inv-title">
+      <section className="rounded-xl border bg-card shadow-xs" aria-labelledby="inv-title">
         <h2 id="inv-title" className="border-b px-6 py-4 text-base font-semibold sm:px-8">
           Invoices
         </h2>
@@ -83,7 +83,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
                     {inv.dueDate && ` · due ${formatDate(inv.dueDate)}`}
                   </p>
                 </div>
-                <StatusStamp status={inv.status} />
+                <StatusBadge status={inv.status} />
                 <p className="figures w-36 text-end">
                   {formatMoney(inv.total)}
                   {inv.payUrl && inv.balanceDue.amount !== inv.total.amount && (
@@ -103,7 +103,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
                   {inv.payUrl && (
                     <Link
                       href={new URL(inv.payUrl).pathname}
-                      className="inline-flex h-8 items-center rounded-md bg-saffron px-3 text-sm font-medium text-saffron-foreground hover:bg-saffron/90"
+                      className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90"
                     >
                       Pay
                     </Link>
@@ -116,7 +116,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
       </section>
 
       {view.quotes.length > 0 && (
-        <section className="rounded-lg border bg-card" aria-labelledby="quo-title">
+        <section className="rounded-xl border bg-card shadow-xs" aria-labelledby="quo-title">
           <h2 id="quo-title" className="border-b px-6 py-4 text-base font-semibold sm:px-8">
             Quotes
           </h2>
@@ -130,7 +130,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
                     {q.validUntil && ` · valid until ${formatDate(q.validUntil)}`}
                   </p>
                 </div>
-                <StatusStamp status={q.status} />
+                <StatusBadge status={q.status} />
                 <p className="figures w-36 text-end">{formatMoney(q.total)}</p>
                 <div className="flex gap-2">
                   <a
@@ -151,7 +151,7 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
       )}
 
       {credits.length > 0 && (
-        <section className="rounded-lg border bg-card px-6 py-4 text-sm sm:px-8">
+        <section className="rounded-xl border bg-card shadow-xs px-6 py-4 text-sm sm:px-8">
           <h2 className="font-semibold">Credit notes</h2>
           <ul className="mt-2 grid gap-1">
             {credits.map((c) => (

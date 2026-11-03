@@ -1,12 +1,13 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BellRing, Coins, Link2, Repeat, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { LogoMark, Wordmark } from "@/components/brand";
-import { StatusStamp } from "@/components/status-stamp";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { CURRENCIES } from "@/lib/currencies";
 
-const SHOWN = ["JOD", "KWD", "BHD", "OMR", "SAR", "AED", "USD", "JPY"];
 import { InvoiceSpecimen } from "./invoice-specimen";
+
+const SHOWN = ["JOD", "KWD", "BHD", "OMR", "SAR", "AED", "USD", "JPY"];
 
 const SAMPLE = 1250.5;
 
@@ -20,25 +21,25 @@ const LIFECYCLE = [
 ];
 
 const CHORES = [
-  { title: "Payment links on every invoice", text: "Your client pays online from the email or the portal; the invoice updates itself." },
-  { title: "Reminders that chase for you", text: "Polite emails before and after the due date, sent once, never twice." },
-  { title: "Recurring invoices", text: "Monthly retainers and rent issue themselves on schedule, in your time zone." },
-  { title: "A portal for each client", text: "A private link where clients see their quotes and invoices, accept, and pay." },
-  { title: "Multi-currency with frozen rates", text: "Bill in USD, report in JOD. The rate is captured at issue and never recalculated." },
+  { icon: Link2, title: "Payment links on every invoice", text: "Your client pays online from the email or the portal; the invoice updates itself." },
+  { icon: BellRing, title: "Reminders that chase for you", text: "Polite emails before and after the due date, sent once, never twice." },
+  { icon: Repeat, title: "Recurring invoices", text: "Monthly retainers and rent issue themselves on schedule, in your time zone." },
+  { icon: UsersRound, title: "A portal for each client", text: "A private link where clients see their quotes and invoices, accept, and pay." },
+  { icon: Coins, title: "Multi-currency with frozen rates", text: "Bill in USD, report in JOD. The rate is captured at issue and never recalculated." },
 ];
 
 export default function LandingPage() {
   return (
     <div className="flex flex-1 flex-col">
-      {/* Hero: the cedar field owns the first viewport. */}
-      <section className="bg-cedar text-cedar-foreground">
+      {/* Hero: the brand field owns the first viewport. */}
+      <section className="bg-brand text-brand-foreground">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-          <Wordmark className="[&_svg_rect:first-child]:fill-saffron [&_svg_g]:fill-saffron-foreground" />
+          <Wordmark inverted />
           <div className="flex items-center gap-1 sm:gap-2">
-            <Button asChild variant="ghost" className="text-cedar-foreground hover:bg-cedar-foreground/10 hover:text-cedar-foreground">
+            <Button asChild variant="ghost" className="text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground">
               <Link href="/login">Log in</Link>
             </Button>
-            <Button asChild className="bg-saffron text-saffron-foreground hover:bg-saffron/90">
+            <Button asChild className="bg-brand-foreground text-brand hover:bg-brand-foreground/90">
               <Link href="/register">Create account</Link>
             </Button>
           </div>
@@ -51,20 +52,20 @@ export default function LandingPage() {
               <br />
               to paid.
             </h1>
-            <p lang="ar" dir="rtl" className="mt-5 text-end text-[clamp(1.5rem,3vw,2.1rem)] font-medium text-saffron">
+            <p lang="ar" dir="rtl" className="mt-5 text-end text-[clamp(1.5rem,3vw,2.1rem)] font-medium text-pop">
               من الإنجاز إلى التحصيل
             </p>
-            <p className="mt-7 max-w-[34rem] text-base leading-relaxed text-cedar-foreground/80 sm:text-lg">
+            <p className="mt-7 max-w-[34rem] text-base leading-relaxed text-brand-foreground/80 sm:text-lg">
               Quotes, invoices, payment links and reminders for businesses in Jordan and the Gulf. Dinars to three
-              decimals, Arabic on every PDF, and every state stamped on the record.
+              decimals, Arabic on every PDF, and every step kept on the record.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" className="h-11 bg-saffron px-5 text-[0.95rem] text-saffron-foreground hover:bg-saffron/90">
+              <Button asChild size="lg" className="h-11 bg-brand-foreground px-5 text-[0.95rem] text-brand hover:bg-brand-foreground/90">
                 <Link href="/register">
                   Create your account <ArrowRight className="rtl:rotate-180" />
                 </Link>
               </Button>
-              <Link href="/login" className="px-2 text-sm font-medium text-cedar-foreground/80 underline-offset-4 hover:text-cedar-foreground hover:underline">
+              <Link href="/login" className="px-2 text-sm font-medium text-brand-foreground/80 underline-offset-4 hover:text-brand-foreground hover:underline">
                 I already have one
               </Link>
             </div>
@@ -83,11 +84,11 @@ export default function LandingPage() {
             tax per line, half up. No floating point, anywhere.
           </p>
         </div>
-        <div className="rounded-lg border bg-card">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <table className="figures w-full text-sm">
             <caption className="sr-only">The same amount written in each currency&apos;s own precision</caption>
             <thead>
-              <tr className="border-b text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+              <tr className="border-b bg-muted/60 text-xs text-muted-foreground">
                 <th className="px-5 py-3 text-start font-medium">Currency</th>
                 <th className="px-5 py-3 text-end font-medium">Decimals</th>
                 <th className="px-5 py-3 text-end font-medium">1,250.5 written correctly</th>
@@ -95,7 +96,7 @@ export default function LandingPage() {
             </thead>
             <tbody className="divide-y">
               {CURRENCIES.filter((c) => SHOWN.includes(c.code)).map((c) => (
-                <tr key={c.code} className={c.decimals === 3 ? "bg-saffron/10" : undefined}>
+                <tr key={c.code} className={c.decimals === 3 ? "bg-primary/5" : undefined}>
                   <td className="px-5 py-2.5">
                     <span className="font-medium">{c.code}</span>
                     <span className="ms-2 hidden whitespace-nowrap text-muted-foreground sm:inline">{c.name}</span>
@@ -117,16 +118,16 @@ export default function LandingPage() {
       {/* Lifecycle */}
       <section className="border-y bg-card">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
-          <h2 className="max-w-[20ch] text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">Stamped, never erased.</h2>
+          <h2 className="max-w-[20ch] text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">Tracked, never erased.</h2>
           <p className="mt-4 max-w-[60ch] leading-relaxed text-muted-foreground">
             Once an invoice is issued it cannot be edited, only paid, voided or credited. Every step lands on the record
             and in the audit log, so you, your accountant and the tax office read the same story.
           </p>
-          <dl className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {LIFECYCLE.map((item) => (
-              <div key={item.status} className="grid gap-3">
+              <div key={item.status} className="grid content-start gap-3 rounded-xl border bg-background p-5">
                 <dt>
-                  <StatusStamp status={item.status} />
+                  <StatusBadge status={item.status} />
                 </dt>
                 <dd className="text-sm leading-relaxed text-muted-foreground">{item.text}</dd>
               </div>
@@ -136,28 +137,31 @@ export default function LandingPage() {
       </section>
 
       {/* Chores */}
-      <section className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.4fr] lg:gap-20 lg:py-28">
+      <section className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
         <h2 className="text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">The chores run themselves.</h2>
-        <ul className="divide-y border-y">
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CHORES.map((c) => (
-            <li key={c.title} className="grid gap-1 py-5 sm:grid-cols-[16rem_1fr] sm:gap-6">
-              <p className="font-medium">{c.title}</p>
-              <p className="text-sm leading-relaxed text-muted-foreground">{c.text}</p>
+            <li key={c.title} className="rounded-xl border bg-card p-6 shadow-sm">
+              <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                <c.icon className="size-5" strokeWidth={1.75} />
+              </span>
+              <p className="mt-4 font-medium">{c.title}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{c.text}</p>
             </li>
           ))}
         </ul>
       </section>
 
       {/* Close */}
-      <section className="relative overflow-hidden bg-cedar text-cedar-foreground">
+      <section className="relative overflow-hidden bg-brand text-brand-foreground">
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-5 py-16 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:py-20">
           <div>
             <p className="text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">Send your first invoice today.</p>
-            <p lang="ar" dir="rtl" className="mt-2 text-end text-xl text-saffron">
+            <p lang="ar" dir="rtl" className="mt-2 text-end text-xl text-pop">
               أرسل فاتورتك الأولى اليوم
             </p>
           </div>
-          <Button asChild size="lg" className="h-11 bg-saffron px-5 text-[0.95rem] text-saffron-foreground hover:bg-saffron/90">
+          <Button asChild size="lg" className="h-11 bg-brand-foreground px-5 text-[0.95rem] text-brand hover:bg-brand-foreground/90">
             <Link href="/register">
               Create your account <ArrowRight className="rtl:rotate-180" />
             </Link>

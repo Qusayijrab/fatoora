@@ -22,7 +22,7 @@ export function PortalBox({ clientId }: { clientId: string }) {
   }
 
   return (
-    <section className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-5">
+    <section className="flex flex-wrap items-center gap-3 rounded-xl border bg-card shadow-xs p-5">
       <div className="min-w-56 flex-1">
         <h2 className="text-sm font-semibold">Client portal</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
