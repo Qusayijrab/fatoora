@@ -12,13 +12,13 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "npm run start",
-    url: "http://localhost:3000/login",
+    url: `${process.env.E2E_BASE_URL ?? "http://localhost:3000"}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

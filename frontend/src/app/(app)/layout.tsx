@@ -1,36 +1,52 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { AccountBar } from "./account-bar";
+import { LogoMark } from "@/components/brand";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./app-sidebar";
+import { SidebarOrgSlot, SidebarSlotSkeleton, SidebarUserSlot } from "./sidebar-slots";
 
 /**
- * The static parts (logo, nav) render instantly. Anything that reads the session
- * cookie sits behind <Suspense> and streams in: with Cache Components, reading
- * cookies outside a Suspense boundary is a build error.
+ * The app frame. The cedar sidebar and nav are static and render instantly; the org
+ * switcher and user menu read the session cookie, so each streams in behind its own
+ * <Suspense> (with Cache Components, reading cookies outside a boundary is a build error).
  */
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
-          <Link href="/dashboard" className="font-semibold tracking-tight">
-            Fatoora
-          </Link>
-          <nav className="flex gap-4 text-sm text-muted-foreground">
-            <Link href="/dashboard" className="hover:text-foreground">
-              Dashboard
+    <SidebarProvider>
+      <AppSidebar
+        header={
+          <>
+            <Link href="/dashboard" className="flex items-center gap-2.5 px-1 text-sidebar-accent-foreground">
+              <LogoMark className="size-7" inverted />
+              <span className="text-[1.05rem] font-semibold tracking-[-0.02em] group-data-[collapsible=icon]:hidden">
+                Fatoora
+              </span>
+              <span lang="ar" dir="rtl" className="text-sm opacity-60 group-data-[collapsible=icon]:hidden">
+                فاتورة
+              </span>
             </Link>
-            <Link href="/settings/members" className="hover:text-foreground">
-              Members
-            </Link>
-          </nav>
-          <div className="ms-auto">
-            <Suspense fallback={<div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />}>
-              <AccountBar />
+            <Suspense fallback={<SidebarSlotSkeleton />}>
+              <SidebarOrgSlot />
             </Suspense>
-          </div>
+          </>
+        }
+        footer={
+          <Suspense fallback={<SidebarSlotSkeleton />}>
+            <SidebarUserSlot />
+          </Suspense>
+        }
+      />
+      <SidebarInset className="bg-background">
+        <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/90 px-4 backdrop-blur-sm md:hidden">
+          <SidebarTrigger />
+          <LogoMark className="size-6" />
+          <span className="font-semibold">Fatoora</span>
+        </header>
+        <div className="hidden px-4 pt-3 md:block">
+          <SidebarTrigger className="text-muted-foreground" />
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
-    </div>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-4 sm:px-8 md:pt-2">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "fatoora_token";
-const PUBLIC_PATHS = ["/login", "/register", "/session-expired"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/portal", "/pay"];
 
 /**
  * Optimistic redirects only: it looks at the cookie without verifying the signature.
@@ -10,13 +10,13 @@ const PUBLIC_PATHS = ["/login", "/register", "/session-expired"];
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || (p !== "/" && pathname.startsWith(`${p}/`)));
   const loggedIn = hasUnexpiredToken(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (!isPublic && !loggedIn) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
-  if ((pathname === "/login" || pathname === "/register") && loggedIn) {
+  if ((pathname === "/" || pathname === "/login" || pathname === "/register") && loggedIn) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
   return NextResponse.next();

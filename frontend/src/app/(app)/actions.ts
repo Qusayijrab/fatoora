@@ -52,11 +52,9 @@ export async function addMember(_prev: FormState, formData: FormData): Promise<F
   return { ok: true };
 }
 
-export async function changeMemberRole(_prev: FormState, formData: FormData): Promise<FormState> {
-  const id = String(formData.get("membershipId") ?? "");
-  const role = String(formData.get("role") ?? "") as Role;
+export async function setMemberRole(membershipId: string, role: Role): Promise<FormState> {
   try {
-    await api(`/members/${encodeURIComponent(id)}`, { method: "PATCH", body: { role } });
+    await api(`/members/${encodeURIComponent(membershipId)}`, { method: "PATCH", body: { role } });
   } catch (e) {
     return toFormState(e);
   }
@@ -64,10 +62,9 @@ export async function changeMemberRole(_prev: FormState, formData: FormData): Pr
   return { ok: true };
 }
 
-export async function removeMember(_prev: FormState, formData: FormData): Promise<FormState> {
-  const id = String(formData.get("membershipId") ?? "");
+export async function removeMember(membershipId: string): Promise<FormState> {
   try {
-    await api(`/members/${encodeURIComponent(id)}`, { method: "DELETE" });
+    await api(`/members/${encodeURIComponent(membershipId)}`, { method: "DELETE" });
   } catch (e) {
     return toFormState(e);
   }

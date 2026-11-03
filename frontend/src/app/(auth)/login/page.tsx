@@ -1,23 +1,21 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
+
+export const metadata = { title: "Log in" };
 
 export default function LoginPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Log in</CardTitle>
-        <CardDescription>Welcome back.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <LoginForm />
-      </CardContent>
-      <CardFooter className="text-sm text-muted-foreground">
-        No account yet?&nbsp;
-        <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
-          Create one
+    <>
+      <h1 className="text-2xl font-semibold">Log in</h1>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        New to Fatoora?{" "}
+        <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+          Create an account
         </Link>
-      </CardFooter>
-    </Card>
+      </p>
+      <div className="mt-8">
+        <LoginForm />
+      </div>
+    </>
   );
 }

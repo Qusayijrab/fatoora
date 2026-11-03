@@ -1,55 +1,58 @@
 "use client";
 
-import { useActionState, useRef } from "react";
-import { selectClassName } from "@/components/form-field";
+import { Trash2 } from "lucide-react";
+import { useTransition } from "react";
+import { toast } from "sonner";
+import { ConfirmAction } from "@/components/confirm-action";
 import { Button } from "@/components/ui/button";
-import { type FormState, type Member, type Role, ROLES } from "@/lib/types";
-import { changeMemberRole, removeMember } from "../../actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type Member, type Role, ROLES } from "@/lib/types";
+import { removeMember, setMemberRole } from "../../actions";
 
-/** Change role / remove, for one row. Errors (e.g. "last owner") come from the backend. */
-export function MemberActions({ member, actorRole }: { member: Member; actorRole: Role }) {
-  const [roleState, roleAction, rolePending] = useActionState<FormState, FormData>(changeMemberRole, {});
-  const [removeState, removeAction, removePending] = useActionState<FormState, FormData>(removeMember, {});
-  const roleForm = useRef<HTMLFormElement>(null);
-
+/** Role picker + remove, for one row. Rules like "keep one owner" come back from the backend. */
+export function MemberActions({ member, actorRole, isSelf }: { member: Member; actorRole: Role; isSelf: boolean }) {
+  const [pending, startTransition] = useTransition();
   const editable = actorRole === "OWNER" || member.role !== "OWNER";
   const roles = ROLES.filter((r) => r !== "OWNER" || actorRole === "OWNER" || member.role === "OWNER");
-  const error = roleState.error ?? removeState.error;
+
+  function changeRole(role: string) {
+    startTransition(async () => {
+      const result = await setMemberRole(member.id, role as Role);
+      if (result.error) toast.error(result.error);
+      else toast.success(`${member.fullName} is now ${role.toLowerCase()}`);
+    });
+  }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center justify-end gap-2">
-        <form ref={roleForm} action={roleAction}>
-          <input type="hidden" name="membershipId" value={member.id} />
-          <label className="sr-only" htmlFor={`role-${member.id}`}>
-            Role for {member.email}
-          </label>
-          <select
-            id={`role-${member.id}`}
-            name="role"
-            className={`${selectClassName} w-28`}
-            defaultValue={member.role}
-            key={member.role}
-            disabled={!editable || rolePending}
-            onChange={() => roleForm.current?.requestSubmit()}
-          >
-            {roles.map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </select>
-        </form>
-        <form action={removeAction}>
-          <input type="hidden" name="membershipId" value={member.id} />
-          <Button type="submit" variant="destructive" size="sm" disabled={!editable || removePending}>
-            Remove
+    <div className="flex items-center justify-end gap-2">
+      <Select value={member.role} onValueChange={changeRole} disabled={!editable || pending}>
+        <SelectTrigger size="sm" className="w-28" aria-label={`Role for ${member.email}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end">
+          {roles.map((r) => (
+            <SelectItem key={r} value={r}>
+              {r.charAt(0) + r.slice(1).toLowerCase()}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <ConfirmAction
+        trigger={
+          <Button variant="ghost" size="icon-sm" disabled={!editable} aria-label={`Remove ${member.email}`}>
+            <Trash2 />
           </Button>
-        </form>
-      </div>
-      {error && (
-        <p className="text-xs text-destructive" role="alert">
-          {error}
-        </p>
-      )}
+        }
+        title={isSelf ? "Leave this organization?" : `Remove ${member.fullName}?`}
+        description={
+          isSelf
+            ? "You will lose access to its clients and invoices straight away."
+            : `${member.fullName} loses access to this organization immediately. Their own account and other organizations are not affected.`
+        }
+        confirmLabel={isSelf ? "Leave" : "Remove"}
+        successMessage={`${member.fullName} removed`}
+        action={() => removeMember(member.id)}
+      />
     </div>
   );
 }

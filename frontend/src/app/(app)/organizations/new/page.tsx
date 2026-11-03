@@ -1,16 +1,18 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import { NewOrganizationForm } from "./new-organization-form";
+
+export const metadata = { title: "New organization" };
 
 export default function NewOrganizationPage() {
   return (
-    <Card className="mx-auto max-w-md">
-      <CardHeader>
-        <CardTitle>New organization</CardTitle>
-        <CardDescription>You will be its owner, and we will switch you to it.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="max-w-xl">
+      <PageHeader
+        title="New organization"
+        description="A separate business with its own clients, numbering and members. You will be its owner, and we switch you to it."
+      />
+      <div className="rounded-lg border bg-card p-5 sm:p-6">
         <NewOrganizationForm />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
