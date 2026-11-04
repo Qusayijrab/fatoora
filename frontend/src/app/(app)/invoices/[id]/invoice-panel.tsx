@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CircleDollarSign, Copy, ExternalLink, FileMinus, Link2 } from "lucide-react";
+import { Ban, CircleDollarSign, Copy, ExternalLink, FileMinus, Link2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useActionState, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
 import type { FormState, Invoice, PaymentMethod } from "@/lib/types";
-import { createCreditNote, getPaymentLink, recordPayment, voidInvoice } from "../actions";
+import { createCreditNote, getPaymentLink, recordPayment, recordRefund, voidInvoice } from "../actions";
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "BANK_TRANSFER", label: "Bank transfer" },
@@ -48,6 +48,9 @@ export function InvoicePanel({
 }) {
   const open = invoice.status === "ISSUED" || invoice.status === "PARTIALLY_PAID" || invoice.status === "OVERDUE";
   const isInvoice = invoice.kind === "INVOICE";
+  // Paid invoices are corrected with a credit note too; the part already paid becomes a refund due.
+  const creditable = open || invoice.status === "PAID";
+  const refundDue = invoice.refundDue.amountMinor > 0;
 
   return (
     <aside className="grid gap-4 lg:sticky lg:top-6">
@@ -68,6 +71,12 @@ export function InvoicePanel({
                 <dd className="text-end">{formatAmount(invoice.amountCredited.amount)}</dd>
               </>
             )}
+            {invoice.amountRefunded.amountMinor > 0 && (
+              <>
+                <dt className="text-muted-foreground">Refunded</dt>
+                <dd className="text-end">{formatAmount(invoice.amountRefunded.amount)}</dd>
+              </>
+            )}
             {invoice.dueDate && (
               <>
                 <dt className="text-muted-foreground">Due</dt>
@@ -82,10 +91,17 @@ export function InvoicePanel({
               , frozen on issue. Counts as {formatMoney(invoice.totalBase)} in reports.
             </p>
           )}
-          {open && (
+          {refundDue && (
+            <p className="mt-3 rounded-md border border-ink-overdue/30 bg-ink-overdue/5 p-3 text-sm" data-testid="refund-due">
+              <span className="font-medium">Owed to the client: {formatMoney(invoice.refundDue)}.</span>{" "}
+              <span className="text-muted-foreground">Pay it back, then record the refund here.</span>
+            </p>
+          )}
+          {(open || (isAdmin && (creditable || refundDue))) && (
             <div className="mt-4 grid gap-2">
-              <PaymentDialog invoice={invoice} />
-              {isAdmin && <CreditNoteDialog invoice={invoice} />}
+              {open && <PaymentDialog invoice={invoice} />}
+              {isAdmin && refundDue && <RefundDialog invoice={invoice} />}
+              {isAdmin && creditable && <CreditNoteDialog invoice={invoice} />}
             </div>
           )}
         </section>
@@ -102,13 +118,18 @@ export function InvoicePanel({
             {invoice.payments.map((p) => (
               <li key={p.id} className="flex items-baseline justify-between gap-3 py-2" data-testid="payment-row">
                 <span>
-                  <span className="block">{methodLabel(p.method)}</span>
+                  <span className="block">
+                    {p.kind === "REFUND" ? `Refund · ${methodLabel(p.method).toLowerCase()}` : methodLabel(p.method)}
+                  </span>
                   <span className="figures text-xs text-muted-foreground">
                     {formatDate(p.paidOn)}
                     {p.reference && ` · ${p.reference}`}
                   </span>
                 </span>
-                <span className="figures font-medium">{formatAmount(p.amount.amount)}</span>
+                <span className="figures font-medium">
+                  {p.kind === "REFUND" ? "− " : ""}
+                  {formatAmount(p.amount.amount)}
+                </span>
               </li>
             ))}
           </ul>
@@ -217,6 +238,76 @@ function PaymentDialog({ invoice }: { invoice: Invoice }) {
   );
 }
 
+function RefundDialog({ invoice }: { invoice: Invoice }) {
+  const uid = useId();
+  const [openDialog, setOpen] = useState(false);
+  const [state, action, pending] = useActionState<FormState, FormData>(async (prev: FormState, data: FormData) => {
+    const result = await recordRefund(invoice.id, prev, data);
+    if (result.ok) setOpen(false);
+    return result;
+  }, {});
+  useActionFeedback(state, "Refund recorded");
+
+  return (
+    <Dialog open={openDialog} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="w-full">
+          <Undo2 /> Record refund
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Record a refund</DialogTitle>
+          <DialogDescription>
+            Money you paid back to the client for a credit note on {invoice.number}. Up to {formatMoney(invoice.refundDue)}.
+            For an online payment, refund it in your payment provider first.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={action} className="grid gap-4">
+          {state.error && !state.fieldErrors && <p className="text-sm text-destructive">{state.error}</p>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField id={`refund-amount-${uid}`} label={`Amount (${invoice.currency})`} error={state.fieldErrors?.amount}>
+              <Input
+                id={`refund-amount-${uid}`}
+                name="amount"
+                inputMode="decimal"
+                required
+                className="figures"
+                defaultValue={state.values?.amount ?? invoice.refundDue.amount}
+              />
+            </FormField>
+            <FormField id={`refund-on-${uid}`} label="Paid back on">
+              <Input id={`refund-on-${uid}`} name="paidOn" type="date" className="figures" defaultValue={state.values?.paidOn} />
+            </FormField>
+            <FormField id={`refund-method-${uid}`} label="Method">
+              <Select name="method" defaultValue={state.values?.method ?? "BANK_TRANSFER"}>
+                <SelectTrigger id={`refund-method-${uid}`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField id={`refund-reference-${uid}`} label="Reference (optional)">
+              <Input id={`refund-reference-${uid}`} name="reference" placeholder="Transfer or refund id" defaultValue={state.values?.reference} />
+            </FormField>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Recording…" : "Record refund"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CreditNoteDialog({ invoice }: { invoice: Invoice }) {
   const uid = useId();
   const [openDialog, setOpen] = useState(false);
@@ -248,8 +339,10 @@ function CreditNoteDialog({ invoice }: { invoice: Invoice }) {
         <DialogHeader>
           <DialogTitle>Issue a credit note</DialogTitle>
           <DialogDescription>
-            Reduces what the client owes on {invoice.number} without editing it. It gets its own number (CN-…) and stays
-            on record.
+            {invoice.status === "PAID"
+              ? `Corrects ${invoice.number} without editing it. It is already paid, so the credited amount becomes a refund owed to the client.`
+              : `Reduces what the client owes on ${invoice.number} without editing it. Anything beyond the balance due becomes a refund owed to the client.`}{" "}
+            It gets its own number (CN-…) and stays on record.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">

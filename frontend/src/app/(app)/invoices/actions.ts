@@ -67,6 +67,26 @@ export async function recordPayment(id: string, _prev: FormState, formData: Form
   return { ok: true };
 }
 
+/** Money given back to the client after a credit note on a paid invoice. */
+export async function recordRefund(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const values = {
+    amount: String(formData.get("amount") ?? "").trim(),
+    paidOn: String(formData.get("paidOn") ?? "").trim(),
+    method: String(formData.get("method") ?? "BANK_TRANSFER"),
+    reference: String(formData.get("reference") ?? "").trim(),
+  };
+  try {
+    await api(`/invoices/${encodeURIComponent(id)}/refunds`, {
+      method: "POST",
+      body: { ...values, paidOn: values.paidOn || null, reference: values.reference || null },
+    });
+  } catch (e) {
+    return toFormState(e, values);
+  }
+  refresh(id);
+  return { ok: true };
+}
+
 export async function voidInvoice(id: string, reason: string): Promise<FormState> {
   try {
     await api(`/invoices/${encodeURIComponent(id)}/void`, { method: "POST", body: { reason } });

@@ -159,6 +159,51 @@ class InvoiceIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void aPaidInvoiceIsCorrectedWithACreditNoteAndARefund() throws Exception {
+        Account owner = register("Refund Co");
+        String id = draft(owner, createClient(owner, "C"));
+        postJson("/api/v1/invoices/" + id + "/issue", owner.token(), null);
+        postJson("/api/v1/invoices/" + id + "/payments", owner.token(), """
+                {"amount":"1334","method":"BANK_TRANSFER"}""").andExpect(jsonPath("$.status").value("PAID"));
+
+        // Nothing is owed back yet.
+        postJson("/api/v1/invoices/" + id + "/refunds", owner.token(), """
+                {"amount":"1","method":"BANK_TRANSFER"}""").andExpect(status().isBadRequest());
+
+        postJson("/api/v1/invoices/" + id + "/credit-notes", owner.token(), """
+                {"reason":"Two items returned","lines":[%s]}""".formatted(line("Returned items", "1", "334", null)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.balanceDue.amount").value("0.000"))
+                .andExpect(jsonPath("$.refundDue.amount").value("334.000"));
+
+        // Cannot credit more than is left uncredited (1334 - 334).
+        postJson("/api/v1/invoices/" + id + "/credit-notes", owner.token(), """
+                {"reason":"too much","lines":[%s]}""".formatted(line("x", "1", "1000.001", null)))
+                .andExpect(status().isBadRequest());
+
+        Account member = register("Refund member org");
+        addMember(owner, member, "MEMBER");
+        String memberToken = read(postJson("/api/v1/auth/switch-org/" + owner.orgId(), member.token(), null), "$.accessToken");
+        postJson("/api/v1/invoices/" + id + "/refunds", memberToken, """
+                {"amount":"334","method":"BANK_TRANSFER"}""").andExpect(status().isForbidden());
+
+        postJson("/api/v1/invoices/" + id + "/refunds", owner.token(), """
+                {"amount":"334.001","method":"BANK_TRANSFER"}""").andExpect(status().isBadRequest());
+        postJson("/api/v1/invoices/" + id + "/refunds", owner.token(), """
+                {"amount":"334","method":"BANK_TRANSFER","reference":"TRX-9"}""")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.amountRefunded.amount").value("334.000"))
+                .andExpect(jsonPath("$.refundDue.amount").value("0.000"))
+                .andExpect(jsonPath("$.payments[1].kind").value("REFUND"));
+
+        // Collected this month is net of the refund: 1334 - 334.
+        getJson("/api/v1/dashboard/overview", owner.token())
+                .andExpect(jsonPath("$.collectedThisMonth.amount").value("1000.000"));
+    }
+
+    @Test
     void anOldDraftIsIssuedDatedTodayUnlessAskedToKeepItsDates() throws Exception {
         Account a = register("Dates Co");
         String client = createClient(a, "C");
@@ -203,7 +248,7 @@ class InvoiceIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.balanceDue.amount").value("1000.000"))
                 .andExpect(jsonPath("$.creditNotes[0].number").value("CN-" + YEAR + "-0001"));
 
-        // A credit larger than the balance is refused.
+        // A credit larger than what is left to credit is refused.
         postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), """
                 {"reason":"too much","lines":[%s]}""".formatted(line("x", "1", "1000.001", null)))
                 .andExpect(status().isBadRequest());

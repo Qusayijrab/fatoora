@@ -89,6 +89,12 @@ public class InvoiceController {
         return service.recordPayment(id, request);
     }
 
+    /** Money given back to the client after a credit note on a paid invoice. */
+    @PostMapping("/{id}/refunds")
+    public InvoiceResponse recordRefund(@PathVariable UUID id, @Valid @RequestBody PaymentRequest request) {
+        return service.recordRefund(id, request);
+    }
+
     @PostMapping("/{id}/void")
     public InvoiceResponse voidInvoice(@PathVariable UUID id, @Valid @RequestBody VoidRequest request) {
         return service.voidInvoice(id, request.reason());

@@ -231,6 +231,23 @@ public class InvoiceService {
         return payment;
     }
 
+    /** Records money given back to the client; only what credit notes left owed (see {@link Invoice#refundDue()}). */
+    @Transactional
+    public InvoiceResponse recordRefund(UUID id, PaymentRequest request) {
+        CurrentTenant tenant = TenantContext.require().requireRole(Role.ADMIN);
+        Invoice invoice = loadForUpdate(id);
+        Organization org = organizations.currentEntity();
+        Money amount = Money.parse(request.amount(), invoice.getCurrency());
+        LocalDate paidOn = request.paidOn() != null ? request.paidOn() : organizations.today(org, clock);
+        invoice.recordRefund(amount);
+        payments.save(Payment.refund(invoice, amount, request.method(), paidOn, Strings.clean(request.reference()),
+                tenant.userId()));
+        audit.record("invoice", invoice.getId(), "refund_recorded",
+                "Refund of " + amount.toDisplayString() + " recorded for " + invoice.getNumber(),
+                Map.of("amount", amount.toString(), "method", request.method().name()));
+        return toResponse(invoice);
+    }
+
     @Transactional
     public InvoiceResponse voidInvoice(UUID id, String reason) {
         TenantContext.require().requireRole(Role.ADMIN);
@@ -242,7 +259,10 @@ public class InvoiceService {
         return toResponse(invoice);
     }
 
-    /** Issues a credit note against an open invoice and applies it to that invoice's balance. */
+    /**
+     * Issues a credit note against an issued invoice and applies it. On an invoice the
+     * client already paid (fully or partly), the part beyond the balance becomes a refund due.
+     */
     @Transactional
     public InvoiceResponse createCreditNote(UUID invoiceId, CreditNoteRequest request) {
         CurrentTenant tenant = TenantContext.require().requireRole(Role.ADMIN);

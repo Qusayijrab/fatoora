@@ -54,7 +54,7 @@ public class OverviewService {
 
     /** Balance of one invoice converted with its own frozen rate, in base minor units. */
     private static final String BALANCE_BASE = """
-            ROUND((i.total_minor - i.amount_paid_minor - i.amount_credited_minor)::numeric
+            ROUND((i.total_minor - i.amount_paid_minor - i.amount_credited_minor + i.amount_refunded_minor)::numeric
                   * i.total_base_minor / NULLIF(i.total_minor, 0))""";
 
     private static final String OPEN = """
@@ -104,7 +104,8 @@ public class OverviewService {
         }, org, base, first.atDay(1));
         jdbc.query("""
                 SELECT date_trunc('month', p.paid_on)::date,
-                       SUM(ROUND(p.amount_minor::numeric * i.total_base_minor / NULLIF(i.total_minor, 0)))
+                       SUM(CASE WHEN p.kind = 'REFUND' THEN -1 ELSE 1 END
+                           * ROUND(p.amount_minor::numeric * i.total_base_minor / NULLIF(i.total_minor, 0)))
                 FROM payments p JOIN invoices i ON i.id = p.invoice_id
                 WHERE p.organization_id = ? AND i.base_currency = ? AND p.paid_on >= ?
                 GROUP BY 1

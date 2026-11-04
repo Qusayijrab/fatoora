@@ -44,6 +44,12 @@ public final class DocumentViews {
             if (i.getAmountCredited().isPositive()) {
                 totals.add(new TotalRow("Credited", "إشعارات دائنة", "− " + DocumentView.amount(i.getAmountCredited()), false));
             }
+            if (i.getAmountRefunded().isPositive()) {
+                totals.add(new TotalRow("Refunded", "المبلغ المسترد", "+ " + DocumentView.amount(i.getAmountRefunded()), false));
+            }
+            if (i.refundDue().isPositive()) {
+                totals.add(new TotalRow("Owed to you", "مستحق لكم", DocumentView.money(i.refundDue()), false));
+            }
             totals.add(new TotalRow("Balance due", "الرصيد المستحق",
                     i.getStatus() == InvoiceStatus.VOID ? "—" : DocumentView.money(i.balanceDue()), true));
         }

@@ -15,7 +15,11 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/** Money received against an invoice, by hand (cash, transfer, cheque) or online. */
+/**
+ * Money received against an invoice, by hand (cash, transfer, cheque) or online, or
+ * (kind REFUND) money given back after a credit note on a paid invoice. The amount is
+ * always positive; the kind says which way it went.
+ */
 @Entity
 @Table(name = "payments")
 public class Payment extends TenantScopedEntity {
@@ -28,6 +32,15 @@ public class Payment extends TenantScopedEntity {
         ONLINE,
         OTHER
     }
+
+    public enum Kind {
+        PAYMENT,
+        REFUND
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, updatable = false)
+    private Kind kind = Kind.PAYMENT;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "invoice_id", nullable = false, updatable = false)
@@ -72,6 +85,17 @@ public class Payment extends TenantScopedEntity {
         this.recordedBy = recordedBy;
         this.provider = provider;
         this.providerPaymentId = providerPaymentId;
+    }
+
+    public static Payment refund(Invoice invoice, Money amount, Method method, LocalDate paidOn, String reference,
+            UUID recordedBy) {
+        Payment refund = new Payment(invoice, amount, method, paidOn, reference, recordedBy, null, null);
+        refund.kind = Kind.REFUND;
+        return refund;
+    }
+
+    public Kind getKind() {
+        return kind;
     }
 
     public Invoice getInvoice() {

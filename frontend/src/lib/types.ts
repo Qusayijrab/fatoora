@@ -157,6 +157,8 @@ export type DocumentInput = {
 
 export type Payment = {
   id: string;
+  /** REFUND = money given back after a credit note on a paid invoice. */
+  kind: "PAYMENT" | "REFUND";
   amount: Money;
   method: PaymentMethod;
   paidOn: string;
@@ -187,6 +189,9 @@ export type Invoice = InvoiceSummary & {
   tax: Money;
   amountPaid: Money;
   amountCredited: Money;
+  amountRefunded: Money;
+  /** Owed back to the client after a credit note on a paid invoice, until refunded. */
+  refundDue: Money;
   payments: Payment[];
   creditNotes: { id: string; number: string; total: Money; issueDate: string; reason: string | null }[];
   creditedInvoice: { id: string; number: string } | null;

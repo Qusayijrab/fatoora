@@ -106,6 +106,10 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
                   ...(invoice.amountCredited.amountMinor > 0
                     ? [{ label: "Credited", value: `− ${formatAmount(invoice.amountCredited.amount)}` }]
                     : []),
+                  ...(invoice.amountRefunded.amountMinor > 0
+                    ? [{ label: "Refunded", value: `+ ${formatAmount(invoice.amountRefunded.amount)}` }]
+                    : []),
+                  ...(invoice.refundDue.amountMinor > 0 ? [{ label: "Owed to client", value: formatMoney(invoice.refundDue) }] : []),
                   { label: "Balance due", value: formatMoney(invoice.balanceDue), strong: true },
                 ]
           }

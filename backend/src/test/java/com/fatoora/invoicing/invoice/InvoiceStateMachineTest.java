@@ -248,8 +248,50 @@ class InvoiceStateMachineTest {
         }
 
         @Test
-        void creditNotesOnlyForOpenInvoices() {
+        void creditNotesOnlyForIssuedInvoicesThatAreNotVoid() {
             assertConflict(() -> Invoice.creditNoteFor(draft(), TODAY, "x"));
+            Invoice voided = issued();
+            voided.voidInvoice("x", NOW);
+            assertConflict(() -> Invoice.creditNoteFor(voided, TODAY, "x"));
+        }
+
+        @Test
+        void aPaidInvoiceCanBeCreditedAndTheExcessIsOwedBack() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("100", "JOD"));
+            Invoice.creditNoteFor(invoice, TODAY, "Returned goods"); // allowed now
+            invoice.applyCredit(Money.parse("30", "JOD"));
+            assertThat(invoice.getStatus()).isEqualTo(PAID);
+            assertThat(invoice.balanceDue().isZero()).isTrue();
+            assertThat(invoice.refundDue().toPlainString()).isEqualTo("30.000");
+
+            invoice.recordRefund(Money.parse("30", "JOD"));
+            assertThat(invoice.refundDue().isZero()).isTrue();
+            assertThat(invoice.getAmountRefunded().toPlainString()).isEqualTo("30.000");
+            assertThat(invoice.balanceDue().isZero()).isTrue();
+        }
+
+        @Test
+        void creditingAPartlyPaidInvoiceInFullSettlesItAndOwesBackWhatWasPaid() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("10", "JOD"));
+            invoice.applyCredit(Money.parse("100", "JOD")); // cancel the whole invoice
+            assertThat(invoice.getStatus()).isEqualTo(PAID);
+            assertThat(invoice.balanceDue().isZero()).isTrue();
+            assertThat(invoice.refundDue().toPlainString()).isEqualTo("10.000");
+        }
+
+        @Test
+        void cannotCreditMoreThanWasInvoicedNorRefundMoreThanIsOwed() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("100", "JOD"));
+            invoice.applyCredit(Money.parse("60", "JOD"));
+            assertThatThrownBy(() -> invoice.applyCredit(Money.parse("40.001", "JOD"))).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> invoice.recordRefund(Money.parse("60.001", "JOD"))).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> invoice.recordRefund(Money.parse("1", "USD"))).isInstanceOf(ApiException.class);
+
+            Invoice unpaid = issued();
+            assertThatThrownBy(() -> unpaid.recordRefund(Money.parse("1", "JOD"))).isInstanceOf(ApiException.class);
         }
     }
 }
