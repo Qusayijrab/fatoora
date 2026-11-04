@@ -211,12 +211,24 @@ class InvoiceStateMachineTest {
     @Nested
     class Voiding {
         @Test
-        void issuedAndPartiallyPaidCanBeVoided() {
+        void anIssuedInvoiceWithNoPaymentsCanBeVoided() {
             Invoice invoice = issued();
-            invoice.recordPayment(Money.parse("10", "JOD"));
             invoice.voidInvoice("Wrong client", NOW);
             assertThat(invoice.getStatus()).isEqualTo(VOID);
             assertThat(invoice.getNumber()).isEqualTo("INV-2026-0001"); // keeps its number
+        }
+
+        @Test
+        void aPartlyPaidInvoiceCannotBeVoidedBecauseThePaymentWouldBeLost() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("10", "JOD"));
+            assertConflict(() -> invoice.voidInvoice("Wrong client", NOW));
+            assertThat(invoice.getStatus()).isEqualTo(PARTIALLY_PAID);
+
+            Invoice overdue = issued();
+            overdue.markOverdueIfLate(TODAY.plusDays(31));
+            overdue.recordPayment(Money.parse("10", "JOD"));
+            assertConflict(() -> overdue.voidInvoice("Wrong client", NOW));
         }
 
         @Test

@@ -51,6 +51,8 @@ export function InvoicePanel({
   // Paid invoices are corrected with a credit note too; the part already paid becomes a refund due.
   const creditable = open || invoice.status === "PAID";
   const refundDue = invoice.refundDue.amountMinor > 0;
+  // Voiding would orphan money already received, so it is only offered before any payment.
+  const voidable = open && invoice.amountPaid.amountMinor === 0;
 
   return (
     <aside className="grid gap-4 lg:sticky lg:top-6">
@@ -164,7 +166,7 @@ export function InvoicePanel({
 
       {history}
 
-      {isInvoice && isAdmin && open && <VoidDialog invoice={invoice} />}
+      {isInvoice && isAdmin && voidable && <VoidDialog invoice={invoice} />}
     </aside>
   );
 }

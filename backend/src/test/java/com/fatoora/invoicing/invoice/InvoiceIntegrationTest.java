@@ -156,6 +156,17 @@ class InvoiceIntegrationTest extends IntegrationTest {
                 {"amount":"1334","method":"CASH"}""");
         postJson("/api/v1/invoices/" + paid + "/void", owner.token(), """
                 {"reason":"x"}""").andExpect(status().isConflict());
+
+        // Partly paid: voiding would orphan the 10 JOD already received.
+        String partly = draft(owner, client);
+        postJson("/api/v1/invoices/" + partly + "/issue", owner.token(), null);
+        postJson("/api/v1/invoices/" + partly + "/payments", owner.token(), """
+                {"amount":"10","method":"CASH"}""");
+        postJson("/api/v1/invoices/" + partly + "/void", owner.token(), """
+                {"reason":"x"}""")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("credit note")));
+        getJson("/api/v1/invoices/" + partly, owner.token()).andExpect(jsonPath("$.status").value("PARTIALLY_PAID"));
     }
 
     @Test

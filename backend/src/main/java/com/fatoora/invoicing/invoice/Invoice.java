@@ -364,11 +364,19 @@ public class Invoice extends TenantScopedEntity {
         return false;
     }
 
-    /** Cancels the invoice. It keeps its number and stays visible; nothing is deleted. */
+    /**
+     * Cancels the invoice. It keeps its number and stays visible; nothing is deleted.
+     * Not once money was received: voiding would leave that payment attached to nothing.
+     * Those are corrected with a credit note (and a refund if the client paid too much).
+     */
     public void voidInvoice(String reason, Instant now) {
         requireKind(InvoiceKind.INVOICE);
         if (status == InvoiceStatus.PAID) {
-            throw ApiException.conflict("A paid invoice cannot be voided; issue a credit note instead");
+            throw ApiException.conflict("A paid invoice cannot be voided. Issue a credit note instead, then record the refund.");
+        }
+        if (amountPaidMinor > 0) {
+            throw ApiException.conflict("This invoice has " + getAmountPaid().toDisplayString() + " in payments, so it "
+                    + "cannot be voided. Issue a credit note for the full amount instead, then record the refund.");
         }
         moveTo(InvoiceStatus.VOID);
         this.voidReason = reason;
