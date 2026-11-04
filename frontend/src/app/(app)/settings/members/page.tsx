@@ -77,7 +77,12 @@ async function Members() {
                 </TableCell>
                 {canManage && (
                   <TableCell className="pe-5 text-end">
-                    <MemberActions member={m} actorRole={role} isSelf={m.userId === me.id} />
+                    <MemberActions
+                      member={m}
+                      actorRole={role}
+                      isSelf={m.userId === me.id}
+                      lastOwner={m.role === "OWNER" && members.filter((x) => x.role === "OWNER").length === 1}
+                    />
                   </TableCell>
                 )}
               </TableRow>

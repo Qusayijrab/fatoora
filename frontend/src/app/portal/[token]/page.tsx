@@ -90,12 +90,12 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
                     <span className="block text-xs text-muted-foreground">{formatAmount(inv.balanceDue.amount)} left</span>
                   )}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 sm:w-36 sm:justify-end">
                   <a
                     href={`/portal/${token}/invoices/${inv.id}/pdf`}
                     target="_blank"
                     rel="noopener"
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-muted"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-card px-3 text-sm hover:bg-muted"
                     aria-label={`Download ${inv.number}`}
                   >
                     <FileDown className="size-4" /> PDF
@@ -132,12 +132,12 @@ async function Portal({ params }: { params: Promise<{ token: string }> }) {
                 </div>
                 <StatusBadge status={q.status} />
                 <p className="figures w-36 text-end">{formatMoney(q.total)}</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 sm:w-60 sm:justify-end">
                   <a
                     href={`/portal/${token}/quotes/${q.id}/pdf`}
                     target="_blank"
                     rel="noopener"
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-muted"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-card px-3 text-sm hover:bg-muted"
                     aria-label={`Download ${q.number}`}
                   >
                     <FileDown className="size-4" /> PDF

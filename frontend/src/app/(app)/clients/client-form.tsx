@@ -18,7 +18,7 @@ export function ClientForm({ client }: { client?: Client }) {
       {state.error && state.fieldErrors && <FormError message="Some fields need attention." />}
       {state.error && !state.fieldErrors && <FormError message={state.error} />}
 
-      <Section title="Who" description="The name exactly as it should appear on invoices. Arabic or English.">
+      <Section title="Details" description="The name exactly as it should appear on invoices. Arabic or English.">
         <div className="sm:col-span-2">
           <TextField name="name" label="Client name" state={state} defaultValue={client?.name} required autoFocus={!client} />
         </div>

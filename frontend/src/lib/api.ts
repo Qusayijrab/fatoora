@@ -1,6 +1,6 @@
 import "server-only";
 
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getToken } from "./session";
 import type {
   AuditEntry,
@@ -66,6 +66,9 @@ export async function api<T>(path: string, { method = "GET", body, auth = true }
   });
 
   if (res.status === 401 && auth) redirect("/session-expired");
+  // A signed-in page asked for something that does not exist (or belongs to another organization): show
+  // the 404 page. Public pages (payment links, portal) catch the error and explain it in their own words.
+  if (res.status === 404 && method === "GET" && auth) notFound();
   if (res.status === 204) return undefined as T;
 
   const data = await res.json().catch(() => ({}));

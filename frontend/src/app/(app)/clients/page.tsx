@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getClients } from "@/lib/api";
+import { getClients, getMe } from "@/lib/api";
 import { countryName } from "@/lib/countries";
 
 export const metadata = { title: "Clients" };
@@ -39,7 +39,8 @@ export default function ClientsPage({ searchParams }: PageProps<"/clients">) {
 async function ClientList({ searchParams }: { searchParams: Promise<Search> }) {
   const { q, archived } = await searchParams;
   const includeArchived = archived === "1";
-  const page = await getClients({ q, includeArchived, size: 100 });
+  const [page, me] = await Promise.all([getClients({ q, includeArchived, size: 100 }), getMe()]);
+  const orgCurrency = me.organization?.defaultCurrency;
 
   if (page.total === 0 && !q && !includeArchived) {
     return (
@@ -92,7 +93,7 @@ async function ClientList({ searchParams }: { searchParams: Promise<Search> }) {
                 <TableCell className="hidden text-muted-foreground sm:table-cell">
                   {[c.city, countryName(c.country)].filter(Boolean).join(", ") || "—"}
                 </TableCell>
-                <TableCell className="figures pe-5 text-end text-muted-foreground">{c.currency ?? "Default"}</TableCell>
+                <TableCell className="figures pe-5 text-end text-muted-foreground">{c.currency ?? (orgCurrency ? `${orgCurrency} (default)` : "Default")}</TableCell>
               </TableRow>
             ))}
           </TableBody>

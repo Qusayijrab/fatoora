@@ -7,6 +7,7 @@ import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
+import { taxLabel } from "@/lib/format";
 import { type FormState, NONE_VALUE, type Product, type TaxRate } from "@/lib/types";
 import { saveProduct } from "./actions";
 
@@ -70,7 +71,7 @@ export function ProductForm({
               <SelectItem value={NONE_VALUE}>No tax</SelectItem>
               {taxRates.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
-                  {t.name} · <span className="figures">{t.rate}%</span>
+                  {taxLabel(t)}
                 </SelectItem>
               ))}
             </SelectContent>

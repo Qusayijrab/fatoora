@@ -47,10 +47,9 @@ test("register, see dashboard, add a member, log out, log back in", async ({ bro
   await expect(page.getByTestId("member-row")).toHaveCount(2);
   await expect(page.getByRole("row", { name: new RegExp(colleagueEmail) })).toContainText("MEMBER");
 
-  // The last owner cannot leave: the backend's rule comes back as a toast.
-  await page.getByRole("button", { name: `Remove ${ownerEmail}` }).click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "Leave" }).click();
-  await expect(page.getByText("An organization must keep at least one owner")).toBeVisible();
+  // The last owner can neither leave nor be demoted, so both controls are off (the backend refuses too).
+  await expect(page.getByRole("button", { name: `Remove ${ownerEmail}` })).toBeDisabled();
+  await expect(page.getByRole("combobox", { name: `Role for ${ownerEmail}` })).toBeDisabled();
 
   // The team step on the dashboard is now done.
   await page.getByRole("link", { name: "Dashboard" }).click();

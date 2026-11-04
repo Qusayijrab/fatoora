@@ -14,7 +14,7 @@ export function StatusTabs({
   q?: string;
 }) {
   return (
-    <nav aria-label="Filter by status" className="mb-4 flex max-w-full gap-0.5 overflow-x-auto rounded-lg bg-muted p-1 ring-1 ring-border/60 [scrollbar-width:none]">
+    <nav aria-label="Filter by status" className="relative mb-4 flex max-w-full gap-0.5 overflow-x-auto rounded-lg bg-muted p-1 ring-1 ring-border/60 [scrollbar-width:none]">
       {tabs.map((t) => {
         const active = (t.value ?? "") === (current ?? "");
         const params = new URLSearchParams();

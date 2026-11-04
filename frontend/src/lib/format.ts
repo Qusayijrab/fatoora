@@ -34,3 +34,8 @@ export function initials(name: string): string {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+/** "VAT 16%" stays as is; "Sales tax" becomes "Sales tax · 7.5%". Never "VAT 16% 16%". */
+export function taxLabel(rate: { name: string; rate: string }): string {
+  return rate.name.includes(`${rate.rate}%`) ? rate.name : `${rate.name} · ${rate.rate}%`;
+}

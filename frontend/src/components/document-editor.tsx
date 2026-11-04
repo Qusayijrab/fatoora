@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENCY_GROUPS } from "@/lib/currencies";
+import { taxLabel } from "@/lib/format";
 import { amountPlaceholder, formatMinor, lineAmounts } from "@/lib/money";
 import type { Client, DocumentInput, FormState, Line, Product, TaxRate } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -199,8 +200,8 @@ export function DocumentEditor({
       {state.fieldErrors && <FormError message="Some fields need attention." />}
 
       {/* Header fields */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="grid gap-1.5 sm:col-span-2">
+      <div className={cn("grid gap-4 sm:grid-cols-2", hideDates ? "lg:grid-cols-[2fr_1fr]" : "lg:grid-cols-[2fr_1.4fr_1fr_1fr]")}>
+        <div className="grid content-start gap-1.5 sm:col-span-2 lg:col-span-1">
           <Label htmlFor={`client-${uid}`}>Client</Label>
           {data.clients.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -226,7 +227,7 @@ export function DocumentEditor({
           )}
           {err("clientId") && <p className="text-sm text-destructive">Choose a client</p>}
         </div>
-        <div className="grid gap-1.5">
+        <div className="grid content-start gap-1.5 sm:col-span-2 lg:col-span-1">
           <Label htmlFor={`currency-${uid}`}>Currency</Label>
           <Select
             value={currency}
@@ -253,13 +254,11 @@ export function DocumentEditor({
             </SelectContent>
           </Select>
         </div>
-        <div className={cn("grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1 lg:grid-cols-1", hideDates && "hidden")}>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`issue-${uid}`}>{kind === "invoice" ? "Issue date" : "Quote date"}</Label>
-            <Input id={`issue-${uid}`} type="date" value={issueDate} onChange={(e) => changeIssueDate(e.target.value)} required className="figures" />
-          </div>
+        <div className={cn("grid content-start gap-1.5", hideDates && "hidden")}>
+          <Label htmlFor={`issue-${uid}`}>{kind === "invoice" ? "Issue date" : "Quote date"}</Label>
+          <Input id={`issue-${uid}`} type="date" value={issueDate} onChange={(e) => changeIssueDate(e.target.value)} required className="figures" />
         </div>
-        <div className={cn("grid gap-1.5 sm:col-start-2 lg:col-start-4", hideDates && "hidden")}>
+        <div className={cn("grid content-start gap-1.5", hideDates && "hidden")}>
           <Label htmlFor={`end-${uid}`}>{endLabel}</Label>
           <Input
             id={`end-${uid}`}
@@ -278,9 +277,9 @@ export function DocumentEditor({
       {extra}
 
       {/* Lines */}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[46rem] text-sm">
-          <thead>
+      <div className="relative rounded-lg border sm:overflow-x-auto">
+        <table className="w-full text-sm max-sm:block sm:min-w-[46rem]">
+          <thead className="max-sm:hidden">
             <tr className="border-b bg-muted/50 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
               <th className="px-3 py-2.5 text-start font-medium">Item</th>
               <th className="w-24 px-2 py-2.5 text-end font-medium">Qty</th>
@@ -290,17 +289,17 @@ export function DocumentEditor({
               <th className="w-10" />
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y max-sm:block">
             {lines.map((line, i) => {
               const amounts = computed[i];
               const lineErr = (f: string) => err(`lines[${i}].${f}`);
               return (
-                <tr key={line.key} data-testid="editor-line" className="align-top">
-                  <td className="px-3 py-2.5">
+                <tr key={line.key} data-testid="editor-line" className="align-top max-sm:relative max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-3 max-sm:gap-y-3 max-sm:p-3">
+                  <td className="px-3 py-2.5 max-sm:col-span-2 max-sm:p-0 max-sm:pe-10">
                     <div className="grid gap-1.5">
                       {data.products.length > 0 && (
                         <Select value={line.productId ?? CUSTOM} onValueChange={(v) => pickProduct(line.key, v)}>
-                          <SelectTrigger size="sm" className="h-7 w-full max-w-64 text-xs" aria-label={`Product for line ${i + 1}`}>
+                          <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label={`Product for line ${i + 1}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -320,11 +319,12 @@ export function DocumentEditor({
                         placeholder="Description, printed on the document"
                         aria-label={`Description for line ${i + 1}`}
                         aria-invalid={!!lineErr("description") || undefined}
-                        className="min-h-9 resize-y"
+                        className="min-h-9 w-full resize-y"
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-2.5">
+                  <td className="px-2 py-2.5 max-sm:p-0">
+                    <MobileLabel>Qty</MobileLabel>
                     <Input
                       value={line.quantity}
                       onChange={(e) => update(line.key, { quantity: e.target.value })}
@@ -335,7 +335,8 @@ export function DocumentEditor({
                     />
                     {line.unit && <p className="mt-1 text-end text-xs text-muted-foreground">{line.unit}</p>}
                   </td>
-                  <td className="px-2 py-2.5">
+                  <td className="px-2 py-2.5 max-sm:p-0">
+                    <MobileLabel>Unit price</MobileLabel>
                     <Input
                       value={line.unitPrice}
                       onChange={(e) => update(line.key, { unitPrice: e.target.value })}
@@ -346,7 +347,8 @@ export function DocumentEditor({
                       className="figures text-end"
                     />
                   </td>
-                  <td className="px-2 py-2.5">
+                  <td className="px-2 py-2.5 max-sm:p-0">
+                    <MobileLabel>Tax</MobileLabel>
                     <Select value={line.taxRateId ?? NO_TAX} onValueChange={(v) => update(line.key, { taxRateId: v === NO_TAX ? null : v })}>
                       <SelectTrigger className="w-full" aria-label={`Tax for line ${i + 1}`}>
                         <SelectValue />
@@ -355,19 +357,20 @@ export function DocumentEditor({
                         <SelectItem value={NO_TAX}>No tax</SelectItem>
                         {data.taxRates.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.name} <span className="figures text-muted-foreground">{t.rate}%</span>
+                            {taxLabel(t)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </td>
-                  <td className="figures px-3 py-3.5 text-end font-medium">
+                  <td className="figures px-3 py-3.5 text-end font-medium max-sm:p-0">
+                    <MobileLabel>Amount</MobileLabel>
                     {amounts ? formatMinor(amounts.subtotal, currency) : <span className="text-muted-foreground">—</span>}
                     {amounts && amounts.tax > 0n && (
                       <p className="text-xs font-normal text-muted-foreground">+ {formatMinor(amounts.tax, currency)} tax</p>
                     )}
                   </td>
-                  <td className="py-2.5 pe-2">
+                  <td className="py-2.5 pe-2 max-sm:absolute max-sm:end-1.5 max-sm:top-1.5 max-sm:p-0">
                     <Button
                       type="button"
                       variant="ghost"
@@ -388,7 +391,7 @@ export function DocumentEditor({
           <Button type="button" variant="outline" size="sm" onClick={() => setLines((ls) => [...ls, blankLine()])}>
             <Plus /> Add line
           </Button>
-          <dl className="figures grid min-w-56 grid-cols-[1fr_auto] gap-x-8 gap-y-1 text-sm">
+          <dl className="figures grid min-w-56 grid-cols-[1fr_auto] gap-x-8 gap-y-1 text-sm max-sm:w-full">
             <dt className="text-muted-foreground">Subtotal</dt>
             <dd className="text-end">{formatMinor(totals.subtotal, currency)}</dd>
             <dt className="text-muted-foreground">Tax</dt>
@@ -424,5 +427,14 @@ export function DocumentEditor({
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Column name shown above a line's field on phones, where the table header is hidden. */
+function MobileLabel({ children }: { children: ReactNode }) {
+  return (
+    <span aria-hidden className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted-foreground sm:hidden">
+      {children}
+    </span>
   );
 }

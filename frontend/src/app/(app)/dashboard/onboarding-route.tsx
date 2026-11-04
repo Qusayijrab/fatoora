@@ -67,7 +67,7 @@ export function OnboardingRoute({ steps }: { steps: RouteStep[] }) {
                     href={step.href}
                     className={cn(
                       "mt-2 inline-flex items-center gap-1 text-xs font-medium",
-                      isNext ? "rounded-md bg-primary px-2.5 py-1 text-primary-foreground shadow-xs hover:bg-primary/90" : "text-primary hover:underline",
+                      isNext ? "whitespace-nowrap rounded-md bg-primary px-2.5 py-1 text-primary-foreground shadow-xs hover:bg-primary/90" : "text-primary hover:underline",
                     )}
                   >
                     {step.cta}

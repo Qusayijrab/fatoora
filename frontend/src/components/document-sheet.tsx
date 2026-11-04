@@ -65,14 +65,14 @@ export function DocumentSheet({
           </div>
         </section>
 
-        <div className="overflow-x-auto">
-          <table className="figures w-full min-w-[30rem] text-sm">
+        <div className="relative overflow-x-auto">
+          <table className="figures w-full text-sm sm:min-w-[30rem]">
             <thead>
               <tr className="border-b text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
                 <th className="pb-2 text-start font-medium">Description</th>
                 <th className="pb-2 text-end font-medium">Qty</th>
-                <th className="pb-2 text-end font-medium">Unit price</th>
-                <th className="pb-2 text-end font-medium">Tax</th>
+                <th className="pb-2 text-end font-medium max-sm:hidden">Unit price</th>
+                <th className="pb-2 text-end font-medium max-sm:hidden">Tax</th>
                 <th className="pb-2 text-end font-medium">Amount</th>
               </tr>
             </thead>
@@ -84,13 +84,13 @@ export function DocumentSheet({
                       {l.description}
                     </span>
                   </td>
-                  <td className="py-2.5 text-end whitespace-nowrap">
+                  <td className="py-2.5 ps-3 text-end whitespace-nowrap">
                     {formatAmount(l.quantity)}
                     {l.unit && <span className="text-muted-foreground"> {l.unit}</span>}
                   </td>
-                  <td className="py-2.5 text-end">{formatAmount(l.unitPrice.amount)}</td>
-                  <td className="py-2.5 text-end text-muted-foreground">{l.taxRate === "0" ? "—" : `${l.taxRate}%`}</td>
-                  <td className="py-2.5 text-end">{formatAmount(l.subtotal.amount)}</td>
+                  <td className="py-2.5 text-end max-sm:hidden">{formatAmount(l.unitPrice.amount)}</td>
+                  <td className="py-2.5 text-end text-muted-foreground max-sm:hidden">{l.taxRate === "0" ? "—" : `${l.taxRate}%`}</td>
+                  <td className="py-2.5 ps-3 text-end">{formatAmount(l.subtotal.amount)}</td>
                 </tr>
               ))}
             </tbody>

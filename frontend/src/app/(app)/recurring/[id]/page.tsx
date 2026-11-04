@@ -44,15 +44,15 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           }
         />
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+      <div className="grid items-start gap-6 min-[90rem]:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
           {recurring.status === "ENDED" ? (
-            <p className="text-sm text-muted-foreground">This schedule has ended. Its invoices are listed on the right.</p>
+            <p className="text-sm text-muted-foreground">This schedule has ended. The invoices it created are listed under Generated invoices.</p>
           ) : (
             <RecurringForm data={data} recurring={recurring} key={recurring.id} />
           )}
         </div>
-        <aside className="grid gap-4 lg:sticky lg:top-6">
+        <aside className="grid items-start gap-4 max-[90rem]:order-first sm:grid-cols-2 min-[90rem]:sticky min-[90rem]:top-6 min-[90rem]:grid-cols-1">
           <section className="rounded-xl border bg-card shadow-xs p-5">
             <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground">Next invoice</p>
             <p className="figures mt-1 text-2xl font-semibold" data-testid="next-run">

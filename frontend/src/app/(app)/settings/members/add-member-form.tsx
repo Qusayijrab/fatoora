@@ -53,7 +53,7 @@ export function AddMemberForm({ actorRole }: { actorRole: Role }) {
         </Button>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
-        {state.fieldErrors?.email ?? "They need a Fatoora account first. Invitations by email arrive with email sending."}
+        {state.fieldErrors?.email ?? "They need a Fatoora account first: ask them to sign up, then add their email here."}
       </p>
     </form>
   );

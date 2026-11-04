@@ -176,7 +176,7 @@ export function DataTable<T>({
         <div className="rounded-xl border bg-card shadow-xs">{empty}</div>
       ) : (
         <>
-          <div className={cn("overflow-x-auto rounded-xl border bg-card shadow-xs", mobileCard && "hidden sm:block")}>
+          <div className={cn("relative overflow-x-auto rounded-xl border bg-card shadow-xs", mobileCard && "hidden sm:block")}>
             <table aria-label={label} className="w-full border-collapse text-sm">
               <thead>
                 {table.getHeaderGroups().map((group) => (

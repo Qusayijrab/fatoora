@@ -10,9 +10,20 @@ import { type Member, type Role, ROLES } from "@/lib/types";
 import { removeMember, setMemberRole } from "../../actions";
 
 /** Role picker + remove, for one row. Rules like "keep one owner" come back from the backend. */
-export function MemberActions({ member, actorRole, isSelf }: { member: Member; actorRole: Role; isSelf: boolean }) {
+/** `lastOwner`: the only owner can be neither demoted nor removed, so both controls are off. */
+export function MemberActions({
+  member,
+  actorRole,
+  isSelf,
+  lastOwner,
+}: {
+  member: Member;
+  actorRole: Role;
+  isSelf: boolean;
+  lastOwner: boolean;
+}) {
   const [pending, startTransition] = useTransition();
-  const editable = actorRole === "OWNER" || member.role !== "OWNER";
+  const editable = (actorRole === "OWNER" || member.role !== "OWNER") && !lastOwner;
   const roles = ROLES.filter((r) => r !== "OWNER" || actorRole === "OWNER" || member.role === "OWNER");
 
   function changeRole(role: string) {
@@ -24,7 +35,7 @@ export function MemberActions({ member, actorRole, isSelf }: { member: Member; a
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center justify-end gap-2" title={lastOwner ? "An organization always keeps at least one owner" : undefined}>
       <Select value={member.role} onValueChange={changeRole} disabled={!editable || pending}>
         <SelectTrigger size="sm" className="w-28" aria-label={`Role for ${member.email}`}>
           <SelectValue />

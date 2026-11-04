@@ -43,7 +43,7 @@ export function StatusBadge({
     <span
       data-status={status}
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium leading-none",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-sans font-medium leading-none tracking-normal",
         size === "lg" ? "px-3 py-1.5 text-sm" : "px-2.5 py-1 text-xs",
         INKS[status] ?? INKS.DRAFT,
         fresh && "animate-pop",

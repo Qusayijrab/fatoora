@@ -201,6 +201,11 @@
     scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent;
     -webkit-tap-highlight-color: transparent;
   }
+  /* Mixed-script text (an Arabic client name) keeps its own direction but the page's alignment. */
+  :where([dir="auto"]):not(input, textarea) {
+    text-align: -webkit-match-parent; /* Chrome, Safari */
+    text-align: match-parent;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "cv01";

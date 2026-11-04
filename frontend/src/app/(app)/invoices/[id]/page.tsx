@@ -42,7 +42,12 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
                 Draft invoice <StatusBadge status="DRAFT" />
               </span>
             }
-            description={`For ${invoice.client.name}. Edit freely; issuing gives it the next number and locks it.`}
+            description={
+              <>
+                For <span dir="auto">{invoice.client.name}</span>
+                {invoice.client.name.endsWith(".") ? " " : ". "}Edit freely; issuing gives it the next number and locks it.
+              </>
+            }
           />
         </div>
         <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">

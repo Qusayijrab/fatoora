@@ -24,6 +24,7 @@ import type { Money, Overview } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MoneyChart } from "./money-chart";
 import { OnboardingRoute, type RouteStep } from "./onboarding-route";
+import { SummaryText } from "@/components/summary-text";
 
 export const metadata = { title: "Dashboard" };
 
@@ -163,7 +164,7 @@ async function Dashboard() {
                 <span className="flex min-w-0 items-baseline gap-2.5">
                   <span aria-hidden className="size-1.5 shrink-0 -translate-y-px rounded-full bg-primary/60" />
                   <span className="min-w-0" dir="auto">
-                    {a.summary}
+                    <SummaryText text={a.summary} />
                   </span>
                 </span>
                 <time className="figures shrink-0 text-xs text-muted-foreground" dateTime={a.at}>
@@ -198,7 +199,7 @@ function Ledger({ overview }: { overview: Overview }) {
     { label: "Outstanding", value: overview.outstanding, note: `${overview.openInvoices} open ${overview.openInvoices === 1 ? "invoice" : "invoices"}`, icon: Wallet, tone: "bg-primary/10 text-primary", href: "/invoices?status=ISSUED" },
     { label: "Overdue", value: overview.overdue, note: `${overview.overdueInvoices} past due`, icon: AlarmClock, tone: "bg-ink-overdue/10 text-ink-overdue", alert: overview.overdueInvoices > 0, href: "/invoices?status=OVERDUE" },
     { label: "Collected this month", value: overview.collectedThisMonth, note: "payments received", icon: CircleDollarSign, tone: "bg-ink-paid/12 text-ink-paid", href: "/invoices?status=PAID" },
-    { label: "Invoiced this month", value: overview.invoicedThisMonth, note: `${overview.drafts} drafts · ${overview.quotesAwaitingAnswer} quotes awaiting`, icon: ReceiptText, tone: "bg-ink-partial/12 text-ink-partial", href: "/invoices" },
+    { label: "Invoiced this month", value: overview.invoicedThisMonth, note: `${plural(overview.drafts, "draft")} · ${plural(overview.quotesAwaitingAnswer, "quote")} awaiting`, icon: ReceiptText, tone: "bg-ink-partial/12 text-ink-partial", href: "/invoices" },
   ];
   return (
     <section aria-label="Totals" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -274,4 +275,9 @@ function DashboardSkeleton() {
       <Skeleton className="h-72 w-full" />
     </div>
   );
+}
+
+/** "1 draft", "2 drafts". */
+function plural(n: number, word: string) {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
 }

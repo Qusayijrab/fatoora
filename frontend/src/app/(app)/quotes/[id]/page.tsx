@@ -5,7 +5,7 @@ import { DocumentSheet } from "@/components/document-sheet";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getEditorData, getQuote } from "@/lib/api";
+import { getCurrentOrganization, getEditorData, getQuote } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { QuoteDraftEditor, QuotePanel } from "./quote-client";
 
@@ -37,7 +37,12 @@ async function QuoteDetail({ params }: { params: Promise<{ id: string }> }) {
                 Draft quote <StatusBadge status="DRAFT" />
               </span>
             }
-            description={`For ${quote.client.name}. Sending numbers it and locks the prices.`}
+            description={
+              <>
+                For <span dir="auto">{quote.client.name}</span>
+                {quote.client.name.endsWith(".") ? " " : ". "}Sending gives it a number and locks the prices.
+              </>
+            }
           />
         </div>
         <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
@@ -46,6 +51,21 @@ async function QuoteDetail({ params }: { params: Promise<{ id: string }> }) {
       </>
     );
   }
+
+  // Quotes carry no seller snapshot; show the business as it is today.
+  const org = await getCurrentOrganization();
+  const seller = {
+    name: org.legalName || org.name,
+    email: org.email,
+    phone: org.phone,
+    taxId: org.taxId,
+    addressLine1: org.addressLine1,
+    addressLine2: org.addressLine2,
+    city: org.city,
+    region: null,
+    postalCode: null,
+    country: org.country,
+  };
 
   return (
     <>
@@ -69,7 +89,7 @@ async function QuoteDetail({ params }: { params: Promise<{ id: string }> }) {
           title="Quote"
           number={quote.number}
           status={quote.status}
-          seller={null}
+          seller={seller}
           billTo={quote.billTo}
           dates={[
             { label: "Date", value: quote.issueDate },

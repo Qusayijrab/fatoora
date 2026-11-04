@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getProducts } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, taxLabel } from "@/lib/format";
 
 export const metadata = { title: "Products" };
 
@@ -90,7 +90,7 @@ async function ProductList({ searchParams }: { searchParams: Promise<Search> }) 
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground sm:table-cell">per {p.unit}</TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {p.taxRate ? `${p.taxRate.name} ${p.taxRate.rate}%` : "No tax"}
+                  {p.taxRate ? taxLabel(p.taxRate) : "No tax"}
                 </TableCell>
                 <TableCell className="figures pe-5 text-end font-medium">{formatMoney(p.unitPrice)}</TableCell>
               </TableRow>

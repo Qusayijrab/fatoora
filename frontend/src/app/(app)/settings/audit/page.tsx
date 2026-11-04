@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ApiError, getAudit } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { SummaryText } from "@/components/summary-text";
 
 export const metadata = { title: "Audit log" };
 
@@ -70,10 +71,10 @@ async function Log({ searchParams }: { searchParams: Promise<{ status?: string; 
                 <TableCell dir="auto">
                   {LINKS[e.entityType] && e.action !== "deleted" ? (
                     <Link href={`${LINKS[e.entityType]}/${e.entityId}`} className="hover:underline">
-                      {e.summary}
+                      <SummaryText text={e.summary} />
                     </Link>
                   ) : (
-                    e.summary
+                    <SummaryText text={e.summary} />
                   )}
                 </TableCell>
                 <TableCell className="pe-5 text-muted-foreground">{e.actorName ?? "Fatoora (automatic)"}</TableCell>
