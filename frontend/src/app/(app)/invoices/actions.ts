@@ -87,6 +87,17 @@ export async function recordRefund(id: string, _prev: FormState, formData: FormD
   return { ok: true };
 }
 
+/** Marks an online payment that could not be applied as handled (refunded at the provider). */
+export async function resolvePaymentProblem(id: string): Promise<FormState> {
+  try {
+    await api(`/payment-problems/${encodeURIComponent(id)}/resolve`, { method: "POST" });
+  } catch (e) {
+    return toFormState(e);
+  }
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function voidInvoice(id: string, reason: string): Promise<FormState> {
   try {
     await api(`/invoices/${encodeURIComponent(id)}/void`, { method: "POST", body: { reason } });

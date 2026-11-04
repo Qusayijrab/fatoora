@@ -17,13 +17,18 @@ import com.fatoora.invoicing.pdf.DocumentPdfService;
 import com.fatoora.invoicing.pdf.DocumentPdfService.PdfFile;
 import com.fatoora.invoicing.publiclink.PublicLink;
 import com.fatoora.invoicing.publiclink.PublicLinkService;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Payment links: one stable, unguessable URL per invoice. Opening it shows the invoice;
@@ -59,10 +64,17 @@ public class PaymentLinkService {
     private final PaymentGateway gateway;
     private final DocumentPdfService pdfs;
     private final TenantRunner runner;
+    private final Clock clock;
+
+    /** Stripe accepts 30 minutes to 24 hours. */
+    static final Duration CHECKOUT_LIFETIME = Duration.ofHours(1);
+
+    /** A checkout this close to expiring is replaced rather than handed out again. */
+    private static final Duration REUSE_MARGIN = Duration.ofMinutes(10);
 
     public PaymentLinkService(PublicLinkService links, InvoiceRepository invoices, InvoiceService invoiceService,
             OrganizationService organizations, CheckoutSessionRepository sessions, PaymentGateway gateway,
-            DocumentPdfService pdfs, TenantRunner runner) {
+            DocumentPdfService pdfs, TenantRunner runner, Clock clock) {
         this.links = links;
         this.invoices = invoices;
         this.invoiceService = invoiceService;
@@ -71,6 +83,7 @@ public class PaymentLinkService {
         this.gateway = gateway;
         this.pdfs = pdfs;
         this.runner = runner;
+        this.clock = clock;
     }
 
     // ---- for logged-in users ----
@@ -114,7 +127,12 @@ public class PaymentLinkService {
                 () -> pdfs.invoicePdf(invoiceService.load(link.getTargetId()), organizations.currentEntity()));
     }
 
-    /** Starts a checkout for the current balance and returns the provider's URL. */
+    /**
+     * Returns a checkout for the current balance. The invoice row is locked, so concurrent
+     * clicks are serialized: a still-valid checkout for the same amount is reused (two
+     * tabs share one checkout, which the provider lets pay only once); any other open
+     * checkout is expired first, so at most one checkout per invoice can take money.
+     */
     public String startCheckout(String token) {
         PublicLink link = links.resolve(token, PublicLink.Kind.INVOICE);
         return runner.inOrganization(link.getOrganizationId(), () -> {
@@ -122,16 +140,51 @@ public class PaymentLinkService {
             if (!invoice.getStatus().isOpen() || !invoice.balanceDue().isPositive()) {
                 throw ApiException.conflict("This invoice has nothing left to pay");
             }
+            Instant now = clock.instant();
+            for (CheckoutSession open : sessions.findByOrganizationIdAndInvoiceIdAndStatus(
+                    invoice.getOrganizationId(), invoice.getId(), CheckoutSession.Status.OPEN)) {
+                boolean reusable = open.getProvider().equals(gateway.name())
+                        && open.getAmount().equals(invoice.balanceDue())
+                        && open.isPayable(now.plus(REUSE_MARGIN));
+                if (reusable) {
+                    return open.getCheckoutUrl();
+                }
+                expire(open);
+            }
             String payUrl = links.payUrl(link);
+            Instant expiresAt = now.plus(CHECKOUT_LIFETIME);
             var checkout = gateway.createCheckout(new PaymentGateway.CheckoutRequest(
                     invoice.getOrganizationId(), invoice.getId(), invoice.balanceDue(),
                     "Invoice " + invoice.getNumber(),
                     invoice.getBillTo() == null ? null : invoice.getBillTo().getEmail(),
-                    payUrl + "?status=success", payUrl + "?status=cancelled"));
+                    payUrl + "?status=success", payUrl + "?status=cancelled", expiresAt));
             sessions.save(new CheckoutSession(invoice.getOrganizationId(), invoice.getId(), gateway.name(),
-                    checkout.providerSessionId(), invoice.balanceDue(), checkout.url()));
+                    checkout.providerSessionId(), invoice.balanceDue(), checkout.url(), expiresAt));
             return checkout.url();
         });
+    }
+
+    /**
+     * After a manual payment, credit note, refund or void has committed: open checkouts
+     * for an old balance must not take money any more.
+     */
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onBalanceChanged(InvoiceService.InvoiceBalanceChanged event) {
+        for (CheckoutSession open : sessions.findByOrganizationIdAndInvoiceIdAndStatus(
+                event.organizationId(), event.invoiceId(), CheckoutSession.Status.OPEN)) {
+            if (!event.payable() || !open.getAmount().equals(event.balanceDue())) {
+                expire(open);
+            }
+        }
+    }
+
+    private void expire(CheckoutSession session) {
+        if (session.getProvider().equals(gateway.name())) {
+            gateway.expireCheckout(session.getProviderSessionId());
+        }
+        session.expire();
+        sessions.save(session);
     }
 
     // ---- the mock provider's hosted checkout page ----
@@ -142,15 +195,17 @@ public class PaymentLinkService {
             Invoice invoice = invoiceService.load(session.getInvoiceId());
             String token = links.getOrCreate(PublicLink.Kind.INVOICE, invoice.getId()).getToken();
             return new MockCheckoutView(organizations.currentEntity().getName(), invoice.getNumber(),
-                    MoneyDto.from(session.getAmount()), session.getStatus().name(), token);
+                    MoneyDto.from(session.getAmount()), session.effectiveStatus(clock.instant()).name(), token);
         });
     }
 
     /** The payer clicked "Pay" on the mock checkout: the mock provider emits its signed webhook. */
     public MockPaymentGateway.SignedEvent mockComplete(String sessionId) {
         CheckoutSession session = mockSession(sessionId);
-        if (session.getStatus() != CheckoutSession.Status.OPEN) {
-            throw ApiException.conflict("This checkout is already finished");
+        if (!session.isPayable(clock.instant())) {
+            throw ApiException.conflict(session.getStatus() == CheckoutSession.Status.COMPLETED
+                    ? "This checkout is already paid"
+                    : "This checkout has expired. Go back to the invoice and press Pay again.");
         }
         return ((MockPaymentGateway) gateway).completionEvent(session.getOrganizationId(), sessionId, session.getAmount());
     }

@@ -134,6 +134,61 @@ class PaymentFlowIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void twoTabsShareOneCheckoutAndAChangedBalanceReplacesIt() throws Exception {
+        Account a = register("Two Tabs Co");
+        String invoiceId = issued(a);
+        String token = payToken(a, invoiceId);
+
+        String first = startCheckout(token);
+        assertThat(startCheckout(token)).isEqualTo(first); // same balance: reused, not a second checkout
+
+        // A manual payment changes the balance: the open checkout for the old amount is expired.
+        postJson("/api/v1/invoices/" + invoiceId + "/payments", a.token(), """
+                {"amount":"21.500","method":"CASH"}""").andExpect(status().isOk());
+        getJson("/api/v1/public/mock-checkout/" + first, null).andExpect(jsonPath("$.status").value("EXPIRED"));
+        postJson("/api/v1/public/mock-checkout/" + first + "/complete", null, null).andExpect(status().isConflict());
+
+        String second = startCheckout(token);
+        assertThat(second).isNotEqualTo(first);
+        getJson("/api/v1/public/mock-checkout/" + second, null).andExpect(jsonPath("$.amount.amount").value("100.000"));
+        Integer open = jdbc.queryForObject("""
+                select count(*) from checkout_sessions where invoice_id = ?::uuid and status = 'OPEN'""", Integer.class, invoiceId);
+        assertThat(open).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select expires_at is not null from checkout_sessions where provider_session_id = ?",
+                Boolean.class, second)).isTrue();
+    }
+
+    @Test
+    void moneyTakenButNotAppliedIsListedUntilMarkedHandled() throws Exception {
+        Account a = register("Problem Co");
+        String invoiceId = issued(a);
+        String session = startCheckout(payToken(a, invoiceId));
+        postJson("/api/v1/invoices/" + invoiceId + "/payments", a.token(), """
+                {"amount":"121.500","method":"BANK_TRANSFER"}""").andExpect(jsonPath("$.status").value("PAID"));
+
+        // The client had already paid at the provider before the checkout was expired.
+        var event = ((MockPaymentGateway) gateway).completionEvent(a.orgId(), session, Money.parse("121.500", "JOD"));
+        deliver(event.payload(), event.signatureHeader()).andExpect(jsonPath("$.outcome").value("IGNORED"));
+
+        String problemId = read(getJson("/api/v1/payment-problems", a.token())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].invoiceId").value(invoiceId))
+                .andExpect(jsonPath("$[0].invoiceNumber").value("INV-" + YEAR + "-0001"))
+                .andExpect(jsonPath("$[0].detail").value(org.hamcrest.Matchers.containsString("121.500"))), "$[0].id");
+        getJson("/api/v1/audit-events?entityId=" + invoiceId, a.token())
+                .andExpect(jsonPath("$.items[*].action", org.hamcrest.Matchers.hasItem("online_payment_not_applied")));
+
+        // Another organization sees nothing and cannot resolve it.
+        Account b = register("Other Problem Co");
+        getJson("/api/v1/payment-problems", b.token()).andExpect(jsonPath("$", hasSize(0)));
+        postJson("/api/v1/payment-problems/" + problemId + "/resolve", b.token(), null).andExpect(status().isNotFound());
+
+        postJson("/api/v1/payment-problems/" + problemId + "/resolve", a.token(), null).andExpect(status().isNoContent());
+        getJson("/api/v1/payment-problems", a.token()).andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
     void publicLinksRevealNothingWithoutAValidToken() throws Exception {
         Account a = register("Token Co");
         String invoiceId = issued(a);

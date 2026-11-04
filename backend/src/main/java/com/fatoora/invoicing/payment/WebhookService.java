@@ -1,5 +1,6 @@
 package com.fatoora.invoicing.payment;
 
+import com.fatoora.invoicing.audit.AuditService;
 import com.fatoora.invoicing.common.error.ApiException;
 import com.fatoora.invoicing.common.money.Money;
 import com.fatoora.invoicing.common.tenancy.TenantRunner;
@@ -29,8 +30,10 @@ import org.springframework.stereotype.Service;
  *       unexpected fails, both roll back and the provider's retry starts clean.</li>
  * </ol>
  * Business problems (invoice already paid or voided, amount over the balance) do not
- * throw: the event is stored as IGNORED or FAILED for a human to look at, and the
- * provider gets a 200 so it stops retrying something a retry cannot fix.
+ * throw: the event is stored as IGNORED or FAILED with its invoice, listed by
+ * {@link PaymentProblemService} until someone marks it handled, and written to the
+ * invoice's history. The provider gets a 200 so it stops retrying something a retry
+ * cannot fix.
  */
 @Service
 public class WebhookService {
@@ -50,16 +53,18 @@ public class WebhookService {
     private final OrganizationService organizations;
     private final TenantRunner runner;
     private final JdbcTemplate jdbc;
+    private final AuditService audit;
     private final Clock clock;
 
     public WebhookService(PaymentGateway gateway, CheckoutSessionRepository sessions, InvoiceService invoices,
-            OrganizationService organizations, TenantRunner runner, JdbcTemplate jdbc, Clock clock) {
+            OrganizationService organizations, TenantRunner runner, JdbcTemplate jdbc, AuditService audit, Clock clock) {
         this.gateway = gateway;
         this.sessions = sessions;
         this.invoices = invoices;
         this.organizations = organizations;
         this.runner = runner;
         this.jdbc = jdbc;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -100,7 +105,14 @@ public class WebhookService {
             Money amount = event.amount();
             String problem = problemWith(invoice, amount);
             if (problem != null) {
-                mark(provider, event.eventId(), problem.startsWith("Ignored") ? "IGNORED" : "FAILED", problem);
+                // Money was taken but cannot be applied: keep it in front of a human
+                // (dashboard "needs attention" list and the invoice's history).
+                mark(provider, event.eventId(), problem.startsWith("Ignored") ? "IGNORED" : "FAILED",
+                        amount.toDisplayString() + " not applied. " + problem, invoice.getId());
+                audit.record(orgId, null, "invoice", invoice.getId(), "online_payment_not_applied",
+                        "Online payment of " + amount.toDisplayString() + " could not be applied to "
+                                + invoice.getNumber() + ". Refund it in your " + provider + " dashboard.",
+                        Map.of("amount", amount.toString(), "provider", provider, "reason", problem));
                 log.warn("{} webhook {} not applied: {}", provider, event.eventId(), problem);
                 return problem.startsWith("Ignored") ? Outcome.IGNORED : Outcome.FAILED;
             }
@@ -109,7 +121,7 @@ public class WebhookService {
                     "Online checkout " + event.providerSessionId(), null, provider, event.providerPaymentId());
             sessions.findByProviderAndProviderSessionId(provider, event.providerSessionId())
                     .ifPresent(s -> s.complete(clock.instant()));
-            mark(provider, event.eventId(), "PROCESSED", "Paid " + amount + " on " + invoice.getNumber());
+            mark(provider, event.eventId(), "PROCESSED", "Paid " + amount + " on " + invoice.getNumber(), invoice.getId());
             return Outcome.PROCESSED;
         });
     }
@@ -139,8 +151,10 @@ public class WebhookService {
         return rows == 1;
     }
 
-    private void mark(String provider, String eventId, String status, String detail) {
-        jdbc.update("UPDATE webhook_events SET status = ?, detail = ?, processed_at = now() WHERE provider = ? AND event_id = ?",
-                status, detail, provider, eventId);
+    private void mark(String provider, String eventId, String status, String detail, UUID invoiceId) {
+        jdbc.update("""
+                UPDATE webhook_events SET status = ?, detail = ?, invoice_id = ?, processed_at = now()
+                WHERE provider = ? AND event_id = ?
+                """, status, detail, invoiceId, provider, eventId);
     }
 }

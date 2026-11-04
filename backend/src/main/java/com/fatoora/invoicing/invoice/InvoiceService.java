@@ -76,6 +76,18 @@ public class InvoiceService {
 
     public record PaymentRecorded(UUID organizationId, UUID invoiceId, UUID paymentId) {}
 
+    /**
+     * The balance of an issued invoice changed (payment, credit note, refund, void).
+     * Delivered after commit; online checkouts for an old balance are expired on it.
+     */
+    public record InvoiceBalanceChanged(UUID organizationId, UUID invoiceId, Money balanceDue, boolean payable) {
+
+        static InvoiceBalanceChanged of(Invoice i) {
+            return new InvoiceBalanceChanged(i.getOrganizationId(), i.getId(), i.balanceDue(),
+                    i.getStatus().isOpen() && i.balanceDue().isPositive());
+        }
+    }
+
     // ---- reads ----
 
     @Transactional(readOnly = true)
@@ -228,6 +240,7 @@ public class InvoiceService {
             audit.record(invoice.getOrganizationId(), recordedBy, "invoice", invoice.getId(), "payment_recorded",
                     "Payment of " + amount.toDisplayString() + " recorded for " + invoice.getNumber(), data);
         }
+        events.publishEvent(InvoiceBalanceChanged.of(invoice));
         return payment;
     }
 
@@ -256,6 +269,7 @@ public class InvoiceService {
         audit.record("invoice", invoice.getId(), "voided",
                 "Invoice " + (invoice.getNumber() == null ? "draft" : invoice.getNumber()) + " voided",
                 Map.of("reason", reason.trim()));
+        events.publishEvent(InvoiceBalanceChanged.of(invoice));
         return toResponse(invoice);
     }
 
@@ -287,6 +301,7 @@ public class InvoiceService {
         audit.record("invoice", original.getId(), "credited",
                 "Credited " + creditNote.getTotal().toDisplayString() + " by " + number,
                 Map.of("creditNote", number, "status", original.getStatus().name()));
+        events.publishEvent(InvoiceBalanceChanged.of(original));
         return toResponse(original);
     }
 

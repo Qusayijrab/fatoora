@@ -44,6 +44,12 @@ public class MockPaymentGateway implements PaymentGateway {
         return new Checkout(sessionId, urls.publicUrl() + "/pay/mock/" + sessionId);
     }
 
+    /** Nothing to do at the "provider": the mock checkout page checks our session row. */
+    @Override
+    public boolean expireCheckout(String providerSessionId) {
+        return true;
+    }
+
     /** What the "provider" sends when the payer completes the mock checkout. */
     public SignedEvent completionEvent(UUID organizationId, String sessionId, Money amount) {
         Map<String, Object> data = new LinkedHashMap<>();

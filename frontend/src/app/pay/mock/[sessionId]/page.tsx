@@ -52,7 +52,11 @@ async function Checkout({ params }: { params: Promise<{ sessionId: string }> }) 
         {checkout.status === "OPEN" ? (
           <MockPayForm sessionId={sessionId} amount={formatMoney(checkout.amount)} cancelHref={`/pay/${checkout.payToken}?status=cancelled`} />
         ) : (
-          <p className="text-sm text-muted-foreground">This checkout is already finished.</p>
+          <p className="text-sm text-muted-foreground">
+            {checkout.status === "EXPIRED"
+              ? "This checkout has expired. Go back to the invoice and press Pay again."
+              : "This checkout is already finished."}
+          </p>
         )}
       </div>
     </section>

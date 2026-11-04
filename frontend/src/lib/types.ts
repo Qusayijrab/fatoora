@@ -354,3 +354,14 @@ export type PortalView = {
   }[];
   quotes: { id: string; number: string; status: QuoteStatus; issueDate: string; validUntil: string | null; total: Money }[];
 };
+
+/** An online payment the provider took but that could not be applied to its invoice. */
+export type PaymentProblem = {
+  id: string;
+  provider: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  clientName: string;
+  detail: string;
+  receivedAt: string;
+};
