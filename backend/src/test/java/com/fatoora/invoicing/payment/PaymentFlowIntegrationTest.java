@@ -58,7 +58,7 @@ class PaymentFlowIntegrationTest extends IntegrationTest {
         // No login: the token is the permission.
         getJson("/api/v1/public/pay/" + token, null)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.number").value("INV-2026-0001"))
+                .andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0001"))
                 .andExpect(jsonPath("$.organizationName").value("Online Pay Co"))
                 .andExpect(jsonPath("$.balanceDue.amount").value("121.500"))
                 .andExpect(jsonPath("$.payable").value(true))

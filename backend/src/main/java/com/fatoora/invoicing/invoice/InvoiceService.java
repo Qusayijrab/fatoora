@@ -167,12 +167,19 @@ public class InvoiceService {
 
     // ---- lifecycle ----
 
+    /** Issues dated today (due date moved by the same terms), or with the draft's own dates if {@code keepDates}. */
     @Transactional
     public InvoiceResponse issue(UUID id) {
+        return issue(id, false);
+    }
+
+    @Transactional
+    public InvoiceResponse issue(UUID id, boolean keepDates) {
         CurrentTenant tenant = TenantContext.require();
         Invoice invoice = loadForUpdate(id);
         invoice.requireIssuable();
         Organization org = organizations.currentEntity();
+        invoice.dateForIssue(organizations.today(org, clock), keepDates);
         // Rate first: if there is none, nothing (not even a number) is used up.
         FxService.Rate rate = fx.rateFor(invoice.getCurrency(), org.getDefaultCurrency(), invoice.getIssueDate());
         String number = numbers.next(tenant.organizationId(), DocType.INVOICE, invoice.getIssueDate().getYear());

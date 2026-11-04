@@ -24,6 +24,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -212,6 +213,29 @@ public class Invoice extends TenantScopedEntity {
     }
 
     // ---- lifecycle ----
+
+    /**
+     * Dates a draft for issue on {@code today}, keeping its payment terms: a draft written
+     * last month goes out dated today, not backdated and already overdue, and a December
+     * draft issued in January is numbered in January's year. With {@code keepDates} the
+     * draft's own past date stands, as an explicit choice (e.g. entering invoices already
+     * given on paper); it is then numbered in that date's year. Never in the future.
+     */
+    public void dateForIssue(LocalDate today, boolean keepDates) {
+        requireDraft();
+        if (keepDates) {
+            if (issueDate.isAfter(today)) {
+                throw ApiException.badRequest("The issue date cannot be in the future");
+            }
+            return;
+        }
+        if (!issueDate.equals(today)) {
+            if (dueDate != null) {
+                this.dueDate = today.plusDays(ChronoUnit.DAYS.between(issueDate, dueDate));
+            }
+            this.issueDate = today;
+        }
+    }
 
     /** Throws unless this draft can be issued. Checked before a number is taken. */
     public void requireIssuable() {

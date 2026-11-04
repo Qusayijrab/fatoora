@@ -41,6 +41,9 @@ public final class InvoiceDtos {
 
     public record VoidRequest(@NotBlank @Size(max = 1000) String reason) {}
 
+    /** keepDates: issue with the draft's own (past) dates instead of today's. */
+    public record IssueRequest(Boolean keepDates) {}
+
     public record CreditNoteRequest(
             @NotBlank @Size(max = 1000) String reason,
             @NotEmpty(message = "add at least one line") @Size(max = 200) List<@Valid LineInput> lines) {}

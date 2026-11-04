@@ -27,9 +27,10 @@ export async function saveInvoice(id: string | null, input: DocumentInput): Prom
   return { ok: true };
 }
 
-export async function issueInvoice(id: string): Promise<FormState> {
+/** keepDates: issue with the draft's own (past) dates instead of today's. */
+export async function issueInvoice(id: string, keepDates = false): Promise<FormState> {
   try {
-    await api(`/invoices/${encodeURIComponent(id)}/issue`, { method: "POST" });
+    await api(`/invoices/${encodeURIComponent(id)}/issue`, { method: "POST", body: { keepDates } });
   } catch (e) {
     return toFormState(e);
   }

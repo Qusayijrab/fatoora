@@ -101,7 +101,8 @@ async function invoice({ c, currency = "JOD", lines, issuedDaysAgo, terms = 30, 
     lines,
   });
   if (!issue) return inv;
-  inv = await t("POST", `/invoices/${inv.id}/issue`, {});
+  // History: keep the past dates (issuing otherwise dates an invoice today).
+  inv = await t("POST", `/invoices/${inv.id}/issue`, { keepDates: true });
   for (const [amount, afterDays, method] of pay) {
     const paidOn = plusDays(issueDate, afterDays);
     await t("POST", `/invoices/${inv.id}/payments`, {

@@ -103,6 +103,45 @@ class InvoiceStateMachineTest {
         }
 
         @Test
+        void anOldDraftIsIssuedDatedTodayWithTheSameTerms() {
+            Invoice invoice = Invoice.draft(client(), "JOD", TODAY.minusDays(40), TODAY.minusDays(10)); // 30-day terms
+            invoice.dateForIssue(TODAY, false);
+            assertThat(invoice.getIssueDate()).isEqualTo(TODAY);
+            assertThat(invoice.getDueDate()).isEqualTo(TODAY.plusDays(30));
+            // so it is not overdue the moment it is issued
+            assertThat(invoice.getDueDate()).isAfter(TODAY);
+        }
+
+        @Test
+        void aDecemberDraftIssuedInJanuaryGetsTheNewYear() {
+            LocalDate jan2 = LocalDate.of(2027, 1, 2);
+            Invoice invoice = Invoice.draft(client(), "JOD", LocalDate.of(2026, 12, 20), null);
+            invoice.dateForIssue(jan2, false);
+            assertThat(invoice.getIssueDate().getYear()).isEqualTo(2027);
+            assertThat(invoice.getDueDate()).isNull();
+        }
+
+        @Test
+        void keepingTheDraftsDatesIsAnExplicitChoiceAndNeverInTheFuture() {
+            Invoice past = Invoice.draft(client(), "JOD", TODAY.minusDays(5), TODAY.plusDays(25));
+            past.dateForIssue(TODAY, true);
+            assertThat(past.getIssueDate()).isEqualTo(TODAY.minusDays(5));
+            assertThat(past.getDueDate()).isEqualTo(TODAY.plusDays(25));
+
+            Invoice paperFromLastYear = Invoice.draft(client(), "JOD", LocalDate.of(2025, 12, 31), null);
+            paperFromLastYear.dateForIssue(TODAY, true);
+            assertThat(paperFromLastYear.getIssueDate()).isEqualTo(LocalDate.of(2025, 12, 31));
+
+            Invoice future = Invoice.draft(client(), "JOD", TODAY.plusDays(1), null);
+            assertThatThrownBy(() -> future.dateForIssue(TODAY, true)).isInstanceOf(ApiException.class);
+        }
+
+        @Test
+        void issuedInvoicesCannotBeRedated() {
+            assertConflict(() -> issued().dateForIssue(TODAY.plusDays(1), false));
+        }
+
+        @Test
         void emptyDraftCannotBeIssued() {
             Invoice invoice = Invoice.draft(client(), "JOD", TODAY, TODAY);
             assertThatThrownBy(invoice::requireIssuable).isInstanceOf(ApiException.class);

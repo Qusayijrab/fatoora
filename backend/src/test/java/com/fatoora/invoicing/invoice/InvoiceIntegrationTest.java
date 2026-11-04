@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fatoora.invoicing.IntegrationTest;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
 class InvoiceIntegrationTest extends IntegrationTest {
@@ -48,7 +49,7 @@ class InvoiceIntegrationTest extends IntegrationTest {
         postJson("/api/v1/invoices/" + id + "/issue", a.token(), null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ISSUED"))
-                .andExpect(jsonPath("$.number").value("INV-2026-0001"))
+                .andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0001"))
                 .andExpect(jsonPath("$.billTo.name").value("Petra Design Studio"))
                 .andExpect(jsonPath("$.seller.name").value("Lifecycle Co"));
 
@@ -76,10 +77,10 @@ class InvoiceIntegrationTest extends IntegrationTest {
         String b1 = draft(b, cb);
 
         // Issue out of creation order: numbers follow issue order, not creation order.
-        postJson("/api/v1/invoices/" + a2 + "/issue", a.token(), null).andExpect(jsonPath("$.number").value("INV-2026-0001"));
-        postJson("/api/v1/invoices/" + a1 + "/issue", a.token(), null).andExpect(jsonPath("$.number").value("INV-2026-0002"));
+        postJson("/api/v1/invoices/" + a2 + "/issue", a.token(), null).andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0001"));
+        postJson("/api/v1/invoices/" + a1 + "/issue", a.token(), null).andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0002"));
         // Another organization has its own sequence.
-        postJson("/api/v1/invoices/" + b1 + "/issue", b.token(), null).andExpect(jsonPath("$.number").value("INV-2026-0001"));
+        postJson("/api/v1/invoices/" + b1 + "/issue", b.token(), null).andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0001"));
     }
 
     @Test
@@ -146,7 +147,7 @@ class InvoiceIntegrationTest extends IntegrationTest {
         postJson("/api/v1/invoices/" + id + "/void", owner.token(), """
                 {"reason":"Wrong client"}""")
                 .andExpect(jsonPath("$.status").value("VOID"))
-                .andExpect(jsonPath("$.number").value("INV-2026-0001"))
+                .andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0001"))
                 .andExpect(jsonPath("$.voidReason").value("Wrong client"));
 
         String paid = draft(owner, client);
@@ -155,6 +156,37 @@ class InvoiceIntegrationTest extends IntegrationTest {
                 {"amount":"1334","method":"CASH"}""");
         postJson("/api/v1/invoices/" + paid + "/void", owner.token(), """
                 {"reason":"x"}""").andExpect(status().isConflict());
+    }
+
+    @Test
+    void anOldDraftIsIssuedDatedTodayUnlessAskedToKeepItsDates() throws Exception {
+        Account a = register("Dates Co");
+        String client = createClient(a, "C");
+        LocalDate today = orgToday();
+        LocalDate written = today.minusDays(40);
+        String body = """
+                {"clientId":"%s","currency":"JOD","issueDate":"%s","dueDate":"%s","lines":[%s]}"""
+                .formatted(client, written, written.plusDays(30), line("Work", "1", "100", null));
+
+        String old = read(postJson("/api/v1/invoices", a.token(), body), "$.id");
+        postJson("/api/v1/invoices/" + old + "/issue", a.token(), null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issueDate").value(today.toString()))
+                .andExpect(jsonPath("$.dueDate").value(today.plusDays(30).toString()))
+                .andExpect(jsonPath("$.number").value("INV-" + YEAR + "-0001"));
+
+        String kept = read(postJson("/api/v1/invoices", a.token(), body), "$.id");
+        postJson("/api/v1/invoices/" + kept + "/issue", a.token(), """
+                {"keepDates":true}""")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issueDate").value(written.toString()))
+                .andExpect(jsonPath("$.dueDate").value(written.plusDays(30).toString()));
+
+        String future = read(postJson("/api/v1/invoices", a.token(), """
+                {"clientId":"%s","currency":"JOD","issueDate":"%s","lines":[%s]}"""
+                .formatted(client, today.plusDays(3), line("Work", "1", "100", null))), "$.id");
+        postJson("/api/v1/invoices/" + future + "/issue", a.token(), """
+                {"keepDates":true}""").andExpect(status().isBadRequest());
     }
 
     @Test
@@ -169,7 +201,7 @@ class InvoiceIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.status").value("PARTIALLY_PAID"))
                 .andExpect(jsonPath("$.amountCredited.amount").value("334.000"))
                 .andExpect(jsonPath("$.balanceDue.amount").value("1000.000"))
-                .andExpect(jsonPath("$.creditNotes[0].number").value("CN-2026-0001"));
+                .andExpect(jsonPath("$.creditNotes[0].number").value("CN-" + YEAR + "-0001"));
 
         // A credit larger than the balance is refused.
         postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), """
@@ -215,6 +247,6 @@ class InvoiceIntegrationTest extends IntegrationTest {
         getJson("/api/v1/invoices", a.token()).andExpect(jsonPath("$.total").value(2));
         getJson("/api/v1/invoices?status=ISSUED", a.token()).andExpect(jsonPath("$.items", hasSize(1)));
         getJson("/api/v1/invoices?q=beta", a.token()).andExpect(jsonPath("$.items[0].client.name").value("Beta Foods"));
-        getJson("/api/v1/invoices?q=INV-2026-0001", a.token()).andExpect(jsonPath("$.items", hasSize(1)));
+        getJson("/api/v1/invoices?q=INV-" + YEAR + "-0001", a.token()).andExpect(jsonPath("$.items", hasSize(1)));
     }
 }

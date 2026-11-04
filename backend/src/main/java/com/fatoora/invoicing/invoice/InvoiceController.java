@@ -5,6 +5,7 @@ import com.fatoora.invoicing.invoice.InvoiceDtos.CreditNoteRequest;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceRequest;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceResponse;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceSummary;
+import com.fatoora.invoicing.invoice.InvoiceDtos.IssueRequest;
 import com.fatoora.invoicing.invoice.InvoiceDtos.PaymentRequest;
 import com.fatoora.invoicing.invoice.InvoiceDtos.VoidRequest;
 import com.fatoora.invoicing.mail.DocumentEmailService;
@@ -79,8 +80,8 @@ public class InvoiceController {
     }
 
     @PostMapping("/{id}/issue")
-    public InvoiceResponse issue(@PathVariable UUID id) {
-        return service.issue(id);
+    public InvoiceResponse issue(@PathVariable UUID id, @RequestBody(required = false) IssueRequest request) {
+        return service.issue(id, request != null && Boolean.TRUE.equals(request.keepDates()));
     }
 
     @PostMapping("/{id}/payments")
