@@ -63,7 +63,7 @@ class NumberingConcurrencyIntegrationTest extends IntegrationTest {
             }
             Collections.sort(numbers);
 
-            List<String> expected = IntStream.rangeClosed(1, 20).mapToObj(n -> "INV-2026-%04d".formatted(n)).toList();
+            List<String> expected = IntStream.rangeClosed(1, 20).mapToObj(n -> "INV-" + YEAR + "-%04d".formatted(n)).toList();
             assertThat(numbers).containsExactlyElementsOf(expected);
         } finally {
             pool.shutdownNow();

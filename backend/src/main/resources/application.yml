@@ -44,7 +44,12 @@ app:
     # mock = built-in test checkout (no real money); stripe = Stripe Checkout.
     provider: ${PAYMENTS_PROVIDER:mock}
     mock:
-      webhook-secret: ${MOCK_WEBHOOK_SECRET:local-mock-webhook-secret}
+      # The mock checkout lets anyone with a pay link mark an invoice paid, so it refuses
+      # to start unless explicitly enabled: the "dev" profile (./mvnw spring-boot:run),
+      # tests, or PAYMENTS_MOCK_ENABLED=true for a demo deployment.
+      enabled: ${PAYMENTS_MOCK_ENABLED:false}
+      # Empty = a random secret per start (only this app signs mock events).
+      webhook-secret: ${MOCK_WEBHOOK_SECRET:}
     stripe:
       secret-key: ${STRIPE_SECRET_KEY:}
       webhook-secret: ${STRIPE_WEBHOOK_SECRET:}

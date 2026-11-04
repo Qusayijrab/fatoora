@@ -103,6 +103,45 @@ class InvoiceStateMachineTest {
         }
 
         @Test
+        void anOldDraftIsIssuedDatedTodayWithTheSameTerms() {
+            Invoice invoice = Invoice.draft(client(), "JOD", TODAY.minusDays(40), TODAY.minusDays(10)); // 30-day terms
+            invoice.dateForIssue(TODAY, false);
+            assertThat(invoice.getIssueDate()).isEqualTo(TODAY);
+            assertThat(invoice.getDueDate()).isEqualTo(TODAY.plusDays(30));
+            // so it is not overdue the moment it is issued
+            assertThat(invoice.getDueDate()).isAfter(TODAY);
+        }
+
+        @Test
+        void aDecemberDraftIssuedInJanuaryGetsTheNewYear() {
+            LocalDate jan2 = LocalDate.of(2027, 1, 2);
+            Invoice invoice = Invoice.draft(client(), "JOD", LocalDate.of(2026, 12, 20), null);
+            invoice.dateForIssue(jan2, false);
+            assertThat(invoice.getIssueDate().getYear()).isEqualTo(2027);
+            assertThat(invoice.getDueDate()).isNull();
+        }
+
+        @Test
+        void keepingTheDraftsDatesIsAnExplicitChoiceAndNeverInTheFuture() {
+            Invoice past = Invoice.draft(client(), "JOD", TODAY.minusDays(5), TODAY.plusDays(25));
+            past.dateForIssue(TODAY, true);
+            assertThat(past.getIssueDate()).isEqualTo(TODAY.minusDays(5));
+            assertThat(past.getDueDate()).isEqualTo(TODAY.plusDays(25));
+
+            Invoice paperFromLastYear = Invoice.draft(client(), "JOD", LocalDate.of(2025, 12, 31), null);
+            paperFromLastYear.dateForIssue(TODAY, true);
+            assertThat(paperFromLastYear.getIssueDate()).isEqualTo(LocalDate.of(2025, 12, 31));
+
+            Invoice future = Invoice.draft(client(), "JOD", TODAY.plusDays(1), null);
+            assertThatThrownBy(() -> future.dateForIssue(TODAY, true)).isInstanceOf(ApiException.class);
+        }
+
+        @Test
+        void issuedInvoicesCannotBeRedated() {
+            assertConflict(() -> issued().dateForIssue(TODAY.plusDays(1), false));
+        }
+
+        @Test
         void emptyDraftCannotBeIssued() {
             Invoice invoice = Invoice.draft(client(), "JOD", TODAY, TODAY);
             assertThatThrownBy(invoice::requireIssuable).isInstanceOf(ApiException.class);
@@ -172,12 +211,24 @@ class InvoiceStateMachineTest {
     @Nested
     class Voiding {
         @Test
-        void issuedAndPartiallyPaidCanBeVoided() {
+        void anIssuedInvoiceWithNoPaymentsCanBeVoided() {
             Invoice invoice = issued();
-            invoice.recordPayment(Money.parse("10", "JOD"));
             invoice.voidInvoice("Wrong client", NOW);
             assertThat(invoice.getStatus()).isEqualTo(VOID);
             assertThat(invoice.getNumber()).isEqualTo("INV-2026-0001"); // keeps its number
+        }
+
+        @Test
+        void aPartlyPaidInvoiceCannotBeVoidedBecauseThePaymentWouldBeLost() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("10", "JOD"));
+            assertConflict(() -> invoice.voidInvoice("Wrong client", NOW));
+            assertThat(invoice.getStatus()).isEqualTo(PARTIALLY_PAID);
+
+            Invoice overdue = issued();
+            overdue.markOverdueIfLate(TODAY.plusDays(31));
+            overdue.recordPayment(Money.parse("10", "JOD"));
+            assertConflict(() -> overdue.voidInvoice("Wrong client", NOW));
         }
 
         @Test
@@ -209,8 +260,50 @@ class InvoiceStateMachineTest {
         }
 
         @Test
-        void creditNotesOnlyForOpenInvoices() {
+        void creditNotesOnlyForIssuedInvoicesThatAreNotVoid() {
             assertConflict(() -> Invoice.creditNoteFor(draft(), TODAY, "x"));
+            Invoice voided = issued();
+            voided.voidInvoice("x", NOW);
+            assertConflict(() -> Invoice.creditNoteFor(voided, TODAY, "x"));
+        }
+
+        @Test
+        void aPaidInvoiceCanBeCreditedAndTheExcessIsOwedBack() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("100", "JOD"));
+            Invoice.creditNoteFor(invoice, TODAY, "Returned goods"); // allowed now
+            invoice.applyCredit(Money.parse("30", "JOD"));
+            assertThat(invoice.getStatus()).isEqualTo(PAID);
+            assertThat(invoice.balanceDue().isZero()).isTrue();
+            assertThat(invoice.refundDue().toPlainString()).isEqualTo("30.000");
+
+            invoice.recordRefund(Money.parse("30", "JOD"));
+            assertThat(invoice.refundDue().isZero()).isTrue();
+            assertThat(invoice.getAmountRefunded().toPlainString()).isEqualTo("30.000");
+            assertThat(invoice.balanceDue().isZero()).isTrue();
+        }
+
+        @Test
+        void creditingAPartlyPaidInvoiceInFullSettlesItAndOwesBackWhatWasPaid() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("10", "JOD"));
+            invoice.applyCredit(Money.parse("100", "JOD")); // cancel the whole invoice
+            assertThat(invoice.getStatus()).isEqualTo(PAID);
+            assertThat(invoice.balanceDue().isZero()).isTrue();
+            assertThat(invoice.refundDue().toPlainString()).isEqualTo("10.000");
+        }
+
+        @Test
+        void cannotCreditMoreThanWasInvoicedNorRefundMoreThanIsOwed() {
+            Invoice invoice = issued();
+            invoice.recordPayment(Money.parse("100", "JOD"));
+            invoice.applyCredit(Money.parse("60", "JOD"));
+            assertThatThrownBy(() -> invoice.applyCredit(Money.parse("40.001", "JOD"))).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> invoice.recordRefund(Money.parse("60.001", "JOD"))).isInstanceOf(ApiException.class);
+            assertThatThrownBy(() -> invoice.recordRefund(Money.parse("1", "USD"))).isInstanceOf(ApiException.class);
+
+            Invoice unpaid = issued();
+            assertThatThrownBy(() -> unpaid.recordRefund(Money.parse("1", "JOD"))).isInstanceOf(ApiException.class);
         }
     }
 }

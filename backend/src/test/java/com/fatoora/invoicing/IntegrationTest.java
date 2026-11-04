@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +35,14 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 public abstract class IntegrationTest {
 
     protected static final String PASSWORD = "correct-horse-battery";
+
+    /** Invoices are issued dated today in the organization's zone (tests register with Asia/Amman). */
+    protected static LocalDate orgToday() {
+        return LocalDate.now(ZoneId.of("Asia/Amman"));
+    }
+
+    /** The year in invoice numbers issued now. */
+    protected static final String YEAR = String.valueOf(orgToday().getYear());
 
     @Autowired
     protected MockMvc mvc;

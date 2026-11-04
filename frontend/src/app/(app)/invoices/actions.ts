@@ -27,9 +27,10 @@ export async function saveInvoice(id: string | null, input: DocumentInput): Prom
   return { ok: true };
 }
 
-export async function issueInvoice(id: string): Promise<FormState> {
+/** keepDates: issue with the draft's own (past) dates instead of today's. */
+export async function issueInvoice(id: string, keepDates = false): Promise<FormState> {
   try {
-    await api(`/invoices/${encodeURIComponent(id)}/issue`, { method: "POST" });
+    await api(`/invoices/${encodeURIComponent(id)}/issue`, { method: "POST", body: { keepDates } });
   } catch (e) {
     return toFormState(e);
   }
@@ -63,6 +64,37 @@ export async function recordPayment(id: string, _prev: FormState, formData: Form
     return toFormState(e, values);
   }
   refresh(id);
+  return { ok: true };
+}
+
+/** Money given back to the client after a credit note on a paid invoice. */
+export async function recordRefund(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const values = {
+    amount: String(formData.get("amount") ?? "").trim(),
+    paidOn: String(formData.get("paidOn") ?? "").trim(),
+    method: String(formData.get("method") ?? "BANK_TRANSFER"),
+    reference: String(formData.get("reference") ?? "").trim(),
+  };
+  try {
+    await api(`/invoices/${encodeURIComponent(id)}/refunds`, {
+      method: "POST",
+      body: { ...values, paidOn: values.paidOn || null, reference: values.reference || null },
+    });
+  } catch (e) {
+    return toFormState(e, values);
+  }
+  refresh(id);
+  return { ok: true };
+}
+
+/** Marks an online payment that could not be applied as handled (refunded at the provider). */
+export async function resolvePaymentProblem(id: string): Promise<FormState> {
+  try {
+    await api(`/payment-problems/${encodeURIComponent(id)}/resolve`, { method: "POST" });
+  } catch (e) {
+    return toFormState(e);
+  }
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

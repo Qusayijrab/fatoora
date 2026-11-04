@@ -24,6 +24,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -84,6 +85,10 @@ public class Invoice extends TenantScopedEntity {
 
     @Column(name = "amount_credited_minor", nullable = false)
     private long amountCreditedMinor;
+
+    /** Money given back to the client after a credit note on a paid invoice. */
+    @Column(name = "amount_refunded_minor", nullable = false)
+    private long amountRefundedMinor;
 
     @Embedded
     @AttributeOverrides({
@@ -163,10 +168,14 @@ public class Invoice extends TenantScopedEntity {
         return invoice;
     }
 
-    /** A credit note against an open invoice: same client and currency, issued immediately by the service. */
+    /**
+     * A credit note against an issued invoice, open or paid: same client and currency,
+     * issued immediately by the service. On a paid invoice the credit becomes money owed
+     * back to the client ({@link #refundDue()}).
+     */
     public static Invoice creditNoteFor(Invoice original, LocalDate issueDate, String reason) {
-        if (original.kind != InvoiceKind.INVOICE || !original.status.isOpen()) {
-            throw ApiException.conflict("Credit notes can only be raised against an issued, unpaid invoice");
+        if (original.kind != InvoiceKind.INVOICE || !original.canBeCredited()) {
+            throw ApiException.conflict("Credit notes can only be raised against an issued invoice that is not void");
         }
         Invoice cn = draft(original.client, original.currency, issueDate, null);
         cn.kind = InvoiceKind.CREDIT_NOTE;
@@ -213,6 +222,29 @@ public class Invoice extends TenantScopedEntity {
 
     // ---- lifecycle ----
 
+    /**
+     * Dates a draft for issue on {@code today}, keeping its payment terms: a draft written
+     * last month goes out dated today, not backdated and already overdue, and a December
+     * draft issued in January is numbered in January's year. With {@code keepDates} the
+     * draft's own past date stands, as an explicit choice (e.g. entering invoices already
+     * given on paper); it is then numbered in that date's year. Never in the future.
+     */
+    public void dateForIssue(LocalDate today, boolean keepDates) {
+        requireDraft();
+        if (keepDates) {
+            if (issueDate.isAfter(today)) {
+                throw ApiException.badRequest("The issue date cannot be in the future");
+            }
+            return;
+        }
+        if (!issueDate.equals(today)) {
+            if (dueDate != null) {
+                this.dueDate = today.plusDays(ChronoUnit.DAYS.between(issueDate, dueDate));
+            }
+            this.issueDate = today;
+        }
+    }
+
     /** Throws unless this draft can be issued. Checked before a number is taken. */
     public void requireIssuable() {
         if (!status.canMoveTo(InvoiceStatus.ISSUED)) {
@@ -252,11 +284,39 @@ public class Invoice extends TenantScopedEntity {
         afterSettlement();
     }
 
-    /** Applies an issued credit note to this invoice. */
+    /**
+     * Applies an issued credit note. It may be more than the balance due (the client
+     * already paid): the excess is owed back as a refund. It can never credit more than
+     * was invoiced.
+     */
     void applyCredit(Money amount) {
-        settle(amount, "credit note");
+        if (!canBeCredited()) {
+            throw ApiException.conflict("A credit note can only be applied to an issued invoice that is not void");
+        }
+        requireAmount(amount);
+        Money creditable = Money.ofMinor(totalMinor - amountCreditedMinor, currency);
+        if (amount.compareTo(creditable) > 0) {
+            throw ApiException.badRequest("The credit note (" + amount + ") is more than what is left to credit on this "
+                    + "invoice (" + creditable + ")");
+        }
         this.amountCreditedMinor += amount.amountMinor();
         afterSettlement();
+    }
+
+    /** Records money given back to the client; at most what credit notes left owed. */
+    public void recordRefund(Money amount) {
+        requireKind(InvoiceKind.INVOICE);
+        requireAmount(amount);
+        if (amount.compareTo(refundDue()) > 0) {
+            throw ApiException.badRequest(refundDue().isPositive()
+                    ? "The refund (" + amount + ") is more than the amount owed to the client (" + refundDue() + ")"
+                    : "Nothing is owed to the client on this invoice. Issue a credit note first.");
+        }
+        this.amountRefundedMinor += amount.amountMinor();
+    }
+
+    private boolean canBeCredited() {
+        return status.isOpen() || status == InvoiceStatus.PAID;
     }
 
     private void settle(Money amount, String what) {
@@ -264,19 +324,26 @@ public class Invoice extends TenantScopedEntity {
             throw ApiException.conflict("A " + what + " can only be recorded on an issued, unpaid invoice (this one is "
                     + status.name().toLowerCase().replace('_', ' ') + ")");
         }
-        if (!amount.currency().equals(currency)) {
-            throw ApiException.badRequest("This invoice is in " + currency + ", not " + amount.currency());
-        }
-        if (!amount.isPositive()) {
-            throw ApiException.badRequest("The amount must be more than zero");
-        }
+        requireAmount(amount);
         if (amount.compareTo(balanceDue()) > 0) {
             throw ApiException.badRequest("The " + what + " (" + amount + ") is more than the balance due ("
                     + balanceDue() + ")");
         }
     }
 
+    private void requireAmount(Money amount) {
+        if (!amount.currency().equals(currency)) {
+            throw ApiException.badRequest("This invoice is in " + currency + ", not " + amount.currency());
+        }
+        if (!amount.isPositive()) {
+            throw ApiException.badRequest("The amount must be more than zero");
+        }
+    }
+
     private void afterSettlement() {
+        if (status == InvoiceStatus.PAID) {
+            return; // a credit note on a paid invoice: it stays settled, the excess is a refund due
+        }
         if (balanceDue().isZero()) {
             moveTo(InvoiceStatus.PAID);
         } else if (status == InvoiceStatus.ISSUED) {
@@ -297,11 +364,19 @@ public class Invoice extends TenantScopedEntity {
         return false;
     }
 
-    /** Cancels the invoice. It keeps its number and stays visible; nothing is deleted. */
+    /**
+     * Cancels the invoice. It keeps its number and stays visible; nothing is deleted.
+     * Not once money was received: voiding would leave that payment attached to nothing.
+     * Those are corrected with a credit note (and a refund if the client paid too much).
+     */
     public void voidInvoice(String reason, Instant now) {
         requireKind(InvoiceKind.INVOICE);
         if (status == InvoiceStatus.PAID) {
-            throw ApiException.conflict("A paid invoice cannot be voided; issue a credit note instead");
+            throw ApiException.conflict("A paid invoice cannot be voided. Issue a credit note instead, then record the refund.");
+        }
+        if (amountPaidMinor > 0) {
+            throw ApiException.conflict("This invoice has " + getAmountPaid().toDisplayString() + " in payments, so it "
+                    + "cannot be voided. Issue a credit note for the full amount instead, then record the refund.");
         }
         moveTo(InvoiceStatus.VOID);
         this.voidReason = reason;
@@ -330,8 +405,18 @@ public class Invoice extends TenantScopedEntity {
 
     // ---- reads ----
 
+    /** What the client still owes; never negative. */
     public Money balanceDue() {
-        return Money.ofMinor(totalMinor - amountPaidMinor - amountCreditedMinor, currency);
+        return Money.ofMinor(Math.max(0, net()), currency);
+    }
+
+    /** What is owed back to the client: paid plus credited beyond the total, less refunds. */
+    public Money refundDue() {
+        return Money.ofMinor(Math.max(0, -net()), currency);
+    }
+
+    private long net() {
+        return totalMinor - amountPaidMinor - amountCreditedMinor + amountRefundedMinor;
     }
 
     public InvoiceKind getKind() {
@@ -388,6 +473,10 @@ public class Invoice extends TenantScopedEntity {
 
     public Money getAmountCredited() {
         return Money.ofMinor(amountCreditedMinor, currency);
+    }
+
+    public Money getAmountRefunded() {
+        return Money.ofMinor(amountRefundedMinor, currency);
     }
 
     public Party getBillTo() {

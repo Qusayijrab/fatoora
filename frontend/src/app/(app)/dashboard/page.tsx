@@ -17,13 +17,14 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getMe, getOverview, getSummary } from "@/lib/api";
+import { getMe, getOverview, getPaymentProblems, getSummary } from "@/lib/api";
 import { currencyDecimals } from "@/lib/currencies";
 import { formatAmount, formatMoney } from "@/lib/format";
-import type { Money, Overview } from "@/lib/types";
+import { canManageMembers, type Money, type Overview } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MoneyChart } from "./money-chart";
 import { OnboardingRoute, type RouteStep } from "./onboarding-route";
+import { PaymentProblems } from "./payment-problems";
 import { SummaryText } from "@/components/summary-text";
 
 export const metadata = { title: "Dashboard" };
@@ -61,7 +62,7 @@ async function Dashboard() {
     );
   }
 
-  const [summary, overview] = await Promise.all([getSummary(), getOverview()]);
+  const [summary, overview, problems] = await Promise.all([getSummary(), getOverview(), getPaymentProblems()]);
   const count = (key: string) => summary[key] ?? 0;
   const steps: RouteStep[] = [
     { key: "company", title: "Set up your company", detail: `${org.name}, ${org.defaultCurrency}`, href: "/settings/organization", cta: "Review", done: true },
@@ -104,6 +105,8 @@ async function Dashboard() {
           </>
         }
       />
+
+      {problems.length > 0 && <PaymentProblems problems={problems} isAdmin={canManageMembers(org.role)} />}
 
       {routeFirst && <OnboardingRoute steps={steps} />}
 

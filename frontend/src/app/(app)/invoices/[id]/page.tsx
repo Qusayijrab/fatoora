@@ -51,7 +51,7 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
           />
         </div>
         <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
-          <DraftInvoiceEditor invoice={invoice} data={data} />
+          <DraftInvoiceEditor invoice={invoice} data={data} timeZone={me.organization?.timeZone ?? "UTC"} />
         </div>
       </>
     );
@@ -106,6 +106,10 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
                   ...(invoice.amountCredited.amountMinor > 0
                     ? [{ label: "Credited", value: `− ${formatAmount(invoice.amountCredited.amount)}` }]
                     : []),
+                  ...(invoice.amountRefunded.amountMinor > 0
+                    ? [{ label: "Refunded", value: `+ ${formatAmount(invoice.amountRefunded.amount)}` }]
+                    : []),
+                  ...(invoice.refundDue.amountMinor > 0 ? [{ label: "Owed to client", value: formatMoney(invoice.refundDue) }] : []),
                   { label: "Balance due", value: formatMoney(invoice.balanceDue), strong: true },
                 ]
           }

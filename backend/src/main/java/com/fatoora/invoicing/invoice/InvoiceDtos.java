@@ -41,15 +41,19 @@ public final class InvoiceDtos {
 
     public record VoidRequest(@NotBlank @Size(max = 1000) String reason) {}
 
+    /** keepDates: issue with the draft's own (past) dates instead of today's. */
+    public record IssueRequest(Boolean keepDates) {}
+
     public record CreditNoteRequest(
             @NotBlank @Size(max = 1000) String reason,
             @NotEmpty(message = "add at least one line") @Size(max = 200) List<@Valid LineInput> lines) {}
 
     public record PaymentResponse(
-            UUID id, MoneyDto amount, Payment.Method method, LocalDate paidOn, String reference, String provider) {
+            UUID id, Payment.Kind kind, MoneyDto amount, Payment.Method method, LocalDate paidOn, String reference,
+            String provider) {
 
         static PaymentResponse from(Payment p) {
-            return new PaymentResponse(p.getId(), MoneyDto.from(p.getAmount()), p.getMethod(), p.getPaidOn(),
+            return new PaymentResponse(p.getId(), p.getKind(), MoneyDto.from(p.getAmount()), p.getMethod(), p.getPaidOn(),
                     p.getReference(), p.getProvider());
         }
     }
@@ -94,7 +98,9 @@ public final class InvoiceDtos {
             MoneyDto total,
             MoneyDto amountPaid,
             MoneyDto amountCredited,
+            MoneyDto amountRefunded,
             MoneyDto balanceDue,
+            MoneyDto refundDue,
             List<PaymentResponse> payments,
             List<CreditNoteRef> creditNotes,
             DocumentRef creditedInvoice,
@@ -119,7 +125,7 @@ public final class InvoiceDtos {
                     i.getLines().stream().map(l -> LineResponse.from(l, cur)).toList(),
                     MoneyDto.from(i.getSubtotal()), MoneyDto.from(i.getTax()), MoneyDto.from(i.getTotal()),
                     MoneyDto.from(i.getAmountPaid()), MoneyDto.from(i.getAmountCredited()),
-                    MoneyDto.from(i.balanceDue()),
+                    MoneyDto.from(i.getAmountRefunded()), MoneyDto.from(i.balanceDue()), MoneyDto.from(i.refundDue()),
                     payments.stream().map(PaymentResponse::from).toList(),
                     creditNotes.stream()
                             .map(cn -> new CreditNoteRef(cn.getId(), cn.getNumber(), MoneyDto.from(cn.getTotal()),

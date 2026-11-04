@@ -11,5 +11,8 @@ app:
     enabled: false
   storage:
     type: memory
+  payments:
+    mock:
+      enabled: true
   jwt:
     secret: test-secret-test-secret-test-secret-0123

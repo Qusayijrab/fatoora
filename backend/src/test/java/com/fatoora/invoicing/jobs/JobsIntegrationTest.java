@@ -130,6 +130,8 @@ class JobsIntegrationTest extends IntegrationTest {
                 {"clientId":"%s","currency":"JOD","issueDate":"%s","dueDate":"%s","lines":[%s]}"""
                 .formatted(clientId, due.minusDays(14), due, line("Work", "1", "100", null))), "$.id");
         postJson("/api/v1/invoices/" + id + "/issue", a.token(), null).andExpect(status().isOk());
+        // Issuing dates it today; put it back in the past to simulate an invoice that has aged.
+        jdbc.update("update invoices set issue_date = ?, due_date = ? where id = ?::uuid", due.minusDays(14), due, id);
         return id;
     }
 

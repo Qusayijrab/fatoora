@@ -56,9 +56,13 @@ public class CheckoutSession extends BaseEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
     protected CheckoutSession() {}
 
-    CheckoutSession(UUID organizationId, UUID invoiceId, String provider, String providerSessionId, Money amount, String url) {
+    CheckoutSession(UUID organizationId, UUID invoiceId, String provider, String providerSessionId, Money amount, String url,
+            Instant expiresAt) {
         this.organizationId = organizationId;
         this.invoiceId = invoiceId;
         this.provider = provider;
@@ -67,11 +71,40 @@ public class CheckoutSession extends BaseEntity {
         this.currency = amount.currency();
         this.status = Status.OPEN;
         this.checkoutUrl = url;
+        this.expiresAt = expiresAt;
     }
 
     void complete(Instant now) {
         this.status = Status.COMPLETED;
         this.completedAt = now;
+    }
+
+    void expire() {
+        if (status == Status.OPEN) {
+            this.status = Status.EXPIRED;
+        }
+    }
+
+    /** Open and not past its expiry: the payer can still complete it. */
+    boolean isPayable(Instant now) {
+        return status == Status.OPEN && (expiresAt == null || now.isBefore(expiresAt));
+    }
+
+    /** OPEN in the database but past its expiry counts as expired. */
+    Status effectiveStatus(Instant now) {
+        return status == Status.OPEN && !isPayable(now) ? Status.EXPIRED : status;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public String getCheckoutUrl() {
+        return checkoutUrl;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
     }
 
     public UUID getOrganizationId() {

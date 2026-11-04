@@ -1,7 +1,9 @@
 package com.fatoora.invoicing.payment;
 
 import com.fatoora.invoicing.mail.MailProperties;
+import java.security.SecureRandom;
 import java.time.Clock;
+import java.util.HexFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -26,8 +28,24 @@ public class PaymentGatewayConfig {
                     isBlank(stripe.apiBase()) ? "https://api.stripe.com" : stripe.apiBase(),
                     stripe.secretKey(), stripe.webhookSecret(), json, clock);
         }
-        log.info("Payments: built-in mock checkout (no real money moves)");
-        return new MockPaymentGateway(props.mock().webhookSecret(), urls, json, clock);
+        if (!MockPaymentGateway.NAME.equals(props.provider())) {
+            throw new IllegalStateException("Unknown app.payments.provider '" + props.provider() + "' (use stripe or mock)");
+        }
+        var mock = props.mock();
+        if (mock == null || !mock.enabled()) {
+            throw new IllegalStateException("app.payments.provider=mock is a fake checkout: anyone with a pay link can mark "
+                    + "an invoice paid. Set PAYMENTS_PROVIDER=stripe, or PAYMENTS_MOCK_ENABLED=true for a demo.");
+        }
+        log.warn("Payments: built-in MOCK checkout. No real money moves; do not use with real clients.");
+        String secret = isBlank(mock.webhookSecret()) ? randomSecret() : mock.webhookSecret();
+        return new MockPaymentGateway(secret, urls, json, clock);
+    }
+
+    /** Only this app signs mock events, so a per-start secret is enough and nothing guessable is committed. */
+    private static String randomSecret() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
     }
 
     private static boolean isBlank(String s) {

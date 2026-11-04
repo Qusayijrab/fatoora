@@ -1,0 +1,5 @@
+# Local development (./mvnw spring-boot:run turns this profile on; see pom.xml).
+app:
+  payments:
+    mock:
+      enabled: true

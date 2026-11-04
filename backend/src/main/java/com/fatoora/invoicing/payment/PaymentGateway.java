@@ -1,6 +1,7 @@
 package com.fatoora.invoicing.payment;
 
 import com.fatoora.invoicing.common.money.Money;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,6 +19,13 @@ public interface PaymentGateway {
     Checkout createCheckout(CheckoutRequest request);
 
     /**
+     * Closes a checkout so it can no longer take money. Returns false if the provider
+     * refused (typically because the payer already completed it); the caller then relies
+     * on the completion webhook, which is recorded and surfaced if it cannot be applied.
+     */
+    boolean expireCheckout(String providerSessionId);
+
+    /**
      * Verifies the webhook signature and parses it. Throws {@link InvalidWebhookException}
      * for anything that is not provably from the provider.
      */
@@ -30,7 +38,8 @@ public interface PaymentGateway {
             String description,
             String customerEmail,
             String successUrl,
-            String cancelUrl) {}
+            String cancelUrl,
+            Instant expiresAt) {}
 
     record Checkout(String providerSessionId, String url) {}
 

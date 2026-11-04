@@ -4,11 +4,13 @@ import com.fatoora.invoicing.payment.PaymentLinkService.MockCheckoutView;
 import com.fatoora.invoicing.payment.PaymentLinkService.PublicInvoiceView;
 import com.fatoora.invoicing.pdf.DocumentPdfService.PdfFile;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** HTTP endpoints for payments: one authenticated, the rest public (token or signature is the permission). */
@@ -35,6 +38,27 @@ public final class PaymentControllers {
         @PostMapping("/api/v1/invoices/{id}/payment-link")
         Map<String, String> paymentLink(@PathVariable UUID id) {
             return Map.of("url", service.linkForInvoice(id));
+        }
+    }
+
+    /** Logged-in: online payments that were taken but could not be applied, until marked handled. */
+    @RestController
+    static class PaymentProblemController {
+        private final PaymentProblemService service;
+
+        PaymentProblemController(PaymentProblemService service) {
+            this.service = service;
+        }
+
+        @GetMapping("/api/v1/payment-problems")
+        List<PaymentProblemService.PaymentProblem> list() {
+            return service.unresolved();
+        }
+
+        @PostMapping("/api/v1/payment-problems/{id}/resolve")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        void resolve(@PathVariable UUID id) {
+            service.resolve(id);
         }
     }
 

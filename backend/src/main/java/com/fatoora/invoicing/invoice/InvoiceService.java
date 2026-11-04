@@ -76,6 +76,18 @@ public class InvoiceService {
 
     public record PaymentRecorded(UUID organizationId, UUID invoiceId, UUID paymentId) {}
 
+    /**
+     * The balance of an issued invoice changed (payment, credit note, refund, void).
+     * Delivered after commit; online checkouts for an old balance are expired on it.
+     */
+    public record InvoiceBalanceChanged(UUID organizationId, UUID invoiceId, Money balanceDue, boolean payable) {
+
+        static InvoiceBalanceChanged of(Invoice i) {
+            return new InvoiceBalanceChanged(i.getOrganizationId(), i.getId(), i.balanceDue(),
+                    i.getStatus().isOpen() && i.balanceDue().isPositive());
+        }
+    }
+
     // ---- reads ----
 
     @Transactional(readOnly = true)
@@ -167,12 +179,19 @@ public class InvoiceService {
 
     // ---- lifecycle ----
 
+    /** Issues dated today (due date moved by the same terms), or with the draft's own dates if {@code keepDates}. */
     @Transactional
     public InvoiceResponse issue(UUID id) {
+        return issue(id, false);
+    }
+
+    @Transactional
+    public InvoiceResponse issue(UUID id, boolean keepDates) {
         CurrentTenant tenant = TenantContext.require();
         Invoice invoice = loadForUpdate(id);
         invoice.requireIssuable();
         Organization org = organizations.currentEntity();
+        invoice.dateForIssue(organizations.today(org, clock), keepDates);
         // Rate first: if there is none, nothing (not even a number) is used up.
         FxService.Rate rate = fx.rateFor(invoice.getCurrency(), org.getDefaultCurrency(), invoice.getIssueDate());
         String number = numbers.next(tenant.organizationId(), DocType.INVOICE, invoice.getIssueDate().getYear());
@@ -221,7 +240,25 @@ public class InvoiceService {
             audit.record(invoice.getOrganizationId(), recordedBy, "invoice", invoice.getId(), "payment_recorded",
                     "Payment of " + amount.toDisplayString() + " recorded for " + invoice.getNumber(), data);
         }
+        events.publishEvent(InvoiceBalanceChanged.of(invoice));
         return payment;
+    }
+
+    /** Records money given back to the client; only what credit notes left owed (see {@link Invoice#refundDue()}). */
+    @Transactional
+    public InvoiceResponse recordRefund(UUID id, PaymentRequest request) {
+        CurrentTenant tenant = TenantContext.require().requireRole(Role.ADMIN);
+        Invoice invoice = loadForUpdate(id);
+        Organization org = organizations.currentEntity();
+        Money amount = Money.parse(request.amount(), invoice.getCurrency());
+        LocalDate paidOn = request.paidOn() != null ? request.paidOn() : organizations.today(org, clock);
+        invoice.recordRefund(amount);
+        payments.save(Payment.refund(invoice, amount, request.method(), paidOn, Strings.clean(request.reference()),
+                tenant.userId()));
+        audit.record("invoice", invoice.getId(), "refund_recorded",
+                "Refund of " + amount.toDisplayString() + " recorded for " + invoice.getNumber(),
+                Map.of("amount", amount.toString(), "method", request.method().name()));
+        return toResponse(invoice);
     }
 
     @Transactional
@@ -232,10 +269,14 @@ public class InvoiceService {
         audit.record("invoice", invoice.getId(), "voided",
                 "Invoice " + (invoice.getNumber() == null ? "draft" : invoice.getNumber()) + " voided",
                 Map.of("reason", reason.trim()));
+        events.publishEvent(InvoiceBalanceChanged.of(invoice));
         return toResponse(invoice);
     }
 
-    /** Issues a credit note against an open invoice and applies it to that invoice's balance. */
+    /**
+     * Issues a credit note against an issued invoice and applies it. On an invoice the
+     * client already paid (fully or partly), the part beyond the balance becomes a refund due.
+     */
     @Transactional
     public InvoiceResponse createCreditNote(UUID invoiceId, CreditNoteRequest request) {
         CurrentTenant tenant = TenantContext.require().requireRole(Role.ADMIN);
@@ -260,6 +301,7 @@ public class InvoiceService {
         audit.record("invoice", original.getId(), "credited",
                 "Credited " + creditNote.getTotal().toDisplayString() + " by " + number,
                 Map.of("creditNote", number, "status", original.getStatus().name()));
+        events.publishEvent(InvoiceBalanceChanged.of(original));
         return toResponse(original);
     }
 

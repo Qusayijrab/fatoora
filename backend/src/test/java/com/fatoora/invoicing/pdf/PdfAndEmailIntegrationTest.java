@@ -45,7 +45,7 @@ class PdfAndEmailIntegrationTest extends IntegrationTest {
         byte[] first = getJson("/api/v1/invoices/" + id + "/pdf", a.token())
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
-                .andExpect(header().string("Content-Disposition", Matchers.containsString("INV-2026-0001.pdf")))
+                .andExpect(header().string("Content-Disposition", Matchers.containsString("INV-" + YEAR + "-0001.pdf")))
                 .andReturn().getResponse().getContentAsByteArray();
         byte[] second = getJson("/api/v1/invoices/" + id + "/pdf", a.token()).andReturn().getResponse().getContentAsByteArray();
 
@@ -94,10 +94,10 @@ class PdfAndEmailIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.sentTo").value("billing@example.com"));
 
         String messages = HttpClient.newHttpClient().send(
-                HttpRequest.newBuilder(URI.create(mailpitApi + "/api/v1/search?query=" + "subject:%22INV-2026-0001%20from%20Mail%20Co%22")).build(),
+                HttpRequest.newBuilder(URI.create(mailpitApi + "/api/v1/search?query=" + "subject:%22INV-" + YEAR + "-0001%20from%20Mail%20Co%22")).build(),
                 HttpResponse.BodyHandlers.ofString()).body();
         List<String> subjects = JsonPath.read(messages, "$.messages[*].Subject");
-        assertThat(subjects).contains("Invoice INV-2026-0001 from Mail Co");
+        assertThat(subjects).contains("Invoice INV-" + YEAR + "-0001 from Mail Co");
         List<Integer> attachments = JsonPath.read(messages, "$.messages[*].Attachments");
         assertThat(attachments).contains(1);
     }

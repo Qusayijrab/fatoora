@@ -157,6 +157,8 @@ export type DocumentInput = {
 
 export type Payment = {
   id: string;
+  /** REFUND = money given back after a credit note on a paid invoice. */
+  kind: "PAYMENT" | "REFUND";
   amount: Money;
   method: PaymentMethod;
   paidOn: string;
@@ -187,6 +189,9 @@ export type Invoice = InvoiceSummary & {
   tax: Money;
   amountPaid: Money;
   amountCredited: Money;
+  amountRefunded: Money;
+  /** Owed back to the client after a credit note on a paid invoice, until refunded. */
+  refundDue: Money;
   payments: Payment[];
   creditNotes: { id: string; number: string; total: Money; issueDate: string; reason: string | null }[];
   creditedInvoice: { id: string; number: string } | null;
@@ -348,4 +353,15 @@ export type PortalView = {
     payUrl: string | null;
   }[];
   quotes: { id: string; number: string; status: QuoteStatus; issueDate: string; validUntil: string | null; total: Money }[];
+};
+
+/** An online payment the provider took but that could not be applied to its invoice. */
+export type PaymentProblem = {
+  id: string;
+  provider: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  clientName: string;
+  detail: string;
+  receivedAt: string;
 };
