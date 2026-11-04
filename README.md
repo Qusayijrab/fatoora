@@ -4,65 +4,81 @@
 
 # Fatoora · فاتورة
 
-**Quotes, invoices, payment links and reminders for small businesses in Jordan and the Gulf.**
-Dinars to three decimals, Arabic on every PDF, and every step kept on the record.
+An invoicing app for small businesses in Jordan and the Gulf.
 
 [![CI](https://github.com/Qusayijrab/fatoora/actions/workflows/ci.yml/badge.svg)](https://github.com/Qusayijrab/fatoora/actions/workflows/ci.yml)
 ![Java 21](https://img.shields.io/badge/Java-21-4f46e5)
 ![Spring Boot 4](https://img.shields.io/badge/Spring%20Boot-4.1-4f46e5)
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-4f46e5)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4f46e5)
-![License: MIT](https://img.shields.io/badge/license-MIT-71717a)
 
 <br />
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png" />
-  <img src="docs/screenshots/dashboard.png" alt="Fatoora dashboard: outstanding, overdue and collected totals, a 12-month chart, unpaid invoices by age, and recent activity" width="100%" />
+  <img src="docs/screenshots/dashboard.png" alt="Fatoora dashboard: what you're owed, what's late, what came in this month, and a 12-month chart" width="100%" />
 </picture>
 
 </div>
 
 ---
 
-## What it does
+## Why I built this
 
-A multi-tenant SaaS where a business manages clients and products, sends quotes, issues
-invoices as bilingual PDFs, gets paid online through a payment link, bills retainers on a
-schedule, and chases late payers automatically. Built as a portfolio project, with the
-correctness a real invoicing system needs, each rule proven by tests.
+Most invoicing tools assume two decimal places and an English-only PDF. In Jordan the
+dinar has **three** (1.250 JOD is a real price), clients expect Arabic on the invoice, and a lot
+of businesses bill in JOD and USD at the same time.
 
-| | |
-|---|---|
-| 🧾 **Quotes → invoices** | Draft, send, accept (by you or by the client in their portal), convert to an invoice in one click. |
-| 🔢 **Gapless numbering** | `INV-2026-0001`, sequential per organization and year, assigned only on issue, safe under concurrency. |
-| 🔒 **Immutable once issued** | Corrections are a void (keeps its number) or a credit note `CN-2026-0001`. Client and seller details are frozen onto the document. |
-| 💳 **Payment links** | A private `/pay/…` page per invoice. Stripe Checkout or a built-in test provider; signed, de-duplicated webhooks. |
-| 🔁 **Recurring invoices** | "Every month on the 31st" done right (31 Jan → 28 Feb → 31 Mar), each period billed exactly once. |
-| ⏰ **Overdue reminders** | Polite emails at the days you choose (1, 7, 14…), in each organization's own time zone. |
-| 💱 **Multi-currency** | JOD, USD, SAR, AED, KWD and more, each with its ISO decimals. The exchange rate is frozen at issue. |
-| 🌐 **Client portal** | One link per client: every invoice and quote, PDFs, pay, accept or decline. No account needed. |
-| 📜 **Audit log** | Append-only. Every create, issue, payment, void and change, with who did it. The database refuses edits. |
-| 👥 **Teams** | Several organizations per user, owners, admins and members, switch with one click. |
+So I built the tool I'd want if I ran a small studio in Amman: you add your clients, send a
+quote, turn it into an invoice, email it as a bilingual PDF, and the client pays through a link.
+If they don't pay, it reminds them for you.
+
+It's a portfolio project, but I treated it like something real money would go through. Invoice
+numbers can't skip or repeat, an issued invoice can't be quietly edited, one business can never
+see another's data, and the same payment can't be counted twice. Each of those rules has tests
+behind it.
+
+## What you can do with it
+
+- **Quotes that become invoices.** Send a quote, the client accepts it (or you mark it), and one
+  click turns it into an invoice.
+- **Proper invoice numbers.** `INV-2026-0001`, `INV-2026-0002`… in order, per business, given
+  only when you issue. Drafts don't get a number.
+- **No silent edits.** Once an invoice is issued it's locked. To fix a mistake you void it or
+  issue a credit note, like an accountant would.
+- **Get paid online.** Every invoice can have a private payment page. It works with Stripe, and
+  there's a fake checkout for testing so you never need real card details.
+- **Recurring invoices.** Rent, retainers, monthly subscriptions. It bills on schedule and handles
+  months of different lengths (31 Jan, then 28 Feb, then 31 Mar).
+- **Automatic reminders.** Pick the days (say 1, 7 and 14 days late) and it emails the client
+  politely, in your own time zone.
+- **Several currencies.** JOD, USD, SAR, AED, KWD and more, each with the right number of
+  decimals. The exchange rate is saved on the day you issue, so old reports never shift.
+- **A page for each client.** One private link where a client sees all their invoices and quotes,
+  downloads PDFs, pays, or accepts a quote. They don't need an account.
+- **A history you can trust.** Everything (created, issued, paid, voided) is logged with who did
+  it and when. Nobody can edit or delete those entries, not even through the database.
+- **Teams.** Invite your accountant or a partner as an admin or member, and run more than one
+  business from the same login.
 
 ## Screenshots
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/invoices.png" alt="Invoice list with status filters, sorting, row selection and bulk export and email" /><br /><sub><b>Invoices</b>: filter by status, sort exactly, select rows to export CSV or email them.</sub></td>
-    <td width="50%"><img src="docs/screenshots/invoice.png" alt="An issued invoice shown as a paper sheet, with balance, payments and history" /><br /><sub><b>An invoice</b>: the document as the client sees it, with balance, payments and history.</sub></td>
+    <td width="50%"><img src="docs/screenshots/invoices.png" alt="Invoice list with status filters, sorting, row selection and bulk export and email" /><br /><sub><b>Invoices.</b> Filter by status, sort any column, tick a few and export them or email them all at once.</sub></td>
+    <td width="50%"><img src="docs/screenshots/invoice.png" alt="An issued invoice shown as a paper sheet, with balance, payments and history" /><br /><sub><b>One invoice.</b> On the left, what your client sees. On the right, what's still owed and what happened so far.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/editor.png" alt="Invoice editor with products, quantities, tax per line and live totals" /><br /><sub><b>Editor</b>: products or free lines, tax per line, totals previewed to the fils.</sub></td>
-    <td><img src="docs/screenshots/invoice-pdf.png" alt="Bilingual English and Arabic invoice PDF" /><br /><sub><b>The PDF</b>: English and Arabic, shaped correctly, with the state stamped on it. <a href="docs/invoice-example.pdf">Open the example</a>.</sub></td>
+    <td><img src="docs/screenshots/editor.png" alt="Invoice editor with products, quantities, tax per line and live totals" /><br /><sub><b>Writing an invoice.</b> Pick saved products or type lines by hand. Totals update as you type, down to the last fils.</sub></td>
+    <td><img src="docs/screenshots/invoice-pdf.png" alt="Bilingual English and Arabic invoice PDF" /><br /><sub><b>The PDF.</b> English and Arabic side by side, with the Arabic shaped properly. <a href="docs/invoice-example.pdf">See a real one</a>.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/pay-link.png" alt="Public payment page for one invoice" /><br /><sub><b>Payment link</b>: what the client opens. No login, one invoice, one button.</sub></td>
-    <td><img src="docs/screenshots/client-portal.png" alt="Client portal listing a client's invoices with PDF and Pay buttons" /><br /><sub><b>Client portal</b>: everything one client has with you, in one private link.</sub></td>
+    <td><img src="docs/screenshots/pay-link.png" alt="Public payment page for one invoice" /><br /><sub><b>The payment page.</b> What your client opens from the email. No login, just the invoice and a Pay button.</sub></td>
+    <td><img src="docs/screenshots/client-portal.png" alt="Client portal listing a client's invoices with PDF and Pay buttons" /><br /><sub><b>The client's page.</b> Everything one client has with you, behind one private link.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/audit-log.png" alt="Audit log of every change with time and person" /><br /><sub><b>Audit log</b>: what happened, when and by whom. Read-only by design.</sub></td>
-    <td><img src="docs/screenshots/landing.png" alt="Landing page with an interactive example invoice" /><br /><sub><b>Landing page</b>: walk an example invoice from draft to paid.</sub></td>
+    <td><img src="docs/screenshots/audit-log.png" alt="Audit log of every change with time and person" /><br /><sub><b>Audit log.</b> Every change, when it happened and who did it.</sub></td>
+    <td><img src="docs/screenshots/landing.png" alt="Landing page with an interactive example invoice" /><br /><sub><b>Home page.</b> You can click an example invoice through its whole life, from draft to paid.</sub></td>
   </tr>
 </table>
 
@@ -72,52 +88,52 @@ correctness a real invoicing system needs, each rule proven by tests.
   <img src="docs/screenshots/mobile-editor.png" width="24%" alt="The invoice editor on a phone" />
   &nbsp;
   <img src="docs/screenshots/mobile-pay.png" width="24%" alt="The payment page on a phone" />
-  <br /><sub>On a phone: invoices become cards, the editor stacks each line, and clients pay in a tap.</sub>
+  <br /><sub>It works on a phone too, because that's where most clients open the payment link.</sub>
 </p>
 
-## Try it locally
+## Run it on your machine
 
-You need **Java 21**, **Node 24+** and **Docker**.
+You'll need **Java 21**, **Node 24 or newer**, and **Docker**.
 
 ```bash
-# 1. Database, email catcher and file storage
+# 1. Start the database, a fake email inbox, and file storage
 cp infra/.env.example infra/.env
 docker compose -f infra/docker-compose.yml up -d
 
-# 2. The API on :8080 (Swagger UI at http://localhost:8080/swagger-ui.html)
+# 2. Start the API (http://localhost:8080)
 cd backend && ./mvnw spring-boot:run
 
-# 3. The web app on :3000
+# 3. Start the website (http://localhost:3000)
 cd frontend && cp .env.example .env.local && npm install && npm run dev
 
-# 4. Optional: a demo business with six months of history
+# 4. Optional: fill it with a sample business so there's something to look at
 cd frontend && npm run seed:demo
 ```
 
-The seed prints a login for **Nabati Design Studio**: clients, products, paid, part-paid and
-overdue invoices, quotes and a monthly retainer. Then open:
+Step 4 creates **Nabati Design Studio**, a made-up design studio in Amman with six months of
+clients, invoices (some paid, some late), quotes and a monthly retainer. It prints a login you
+can use straight away.
+
+A few other things you can open while it's running:
 
 | | |
 |---|---|
-| App | <http://localhost:3000> |
-| Sent emails (nothing leaves your machine) | <http://localhost:8025> (Mailpit) |
-| Stored PDFs | <http://localhost:9001> (S3 console) |
-| API docs | <http://localhost:8080/swagger-ui.html> |
+| Every email the app "sends" (nothing actually leaves your computer) | <http://localhost:8025> |
+| The stored PDF files | <http://localhost:9001> |
+| The API documentation, where you can try every endpoint | <http://localhost:8080/swagger-ui.html> |
 
-Payments use the built-in test checkout by default: no keys, no real money, but real signed
-webhooks through the same code path Stripe uses.
+Payments use the fake checkout by default, so you can click "Pay" as much as you like.
 
-## How it is built
+## How it's put together
 
 | | |
 |---|---|
-| **Backend** | Java 21, Spring Boot 4.1, Spring Security (JWT), Spring Data JPA / Hibernate 7, Flyway, PostgreSQL 16 |
-| **Frontend** | Next.js 16 (App Router, Server Actions), TypeScript, Tailwind v4, shadcn/ui, TanStack Table |
-| **Documents** | Thymeleaf → OpenHTMLtoPDF with ICU bidi and Arabic shaping, embedded Tajawal font, S3 storage |
-| **Jobs** | Spring Scheduler + ShedLock (one instance at a time) |
-| **Payments** | `PaymentGateway` interface: Stripe Checkout adapter and a mock provider |
-| **Tests** | JUnit 5 + Testcontainers (real Postgres and Mailpit), Playwright end to end |
-| **Delivery** | Docker images, production compose, GitHub Actions |
+| **Backend** | Java 21, Spring Boot 4.1, Spring Security with JWT, JPA / Hibernate 7, Flyway, PostgreSQL 16 |
+| **Frontend** | Next.js 16 with Server Actions, TypeScript, Tailwind v4, shadcn/ui, TanStack Table |
+| **PDFs** | HTML templates turned into PDF with OpenHTMLtoPDF, with an Arabic font built in |
+| **Background jobs** | Spring Scheduler, with ShedLock so two servers never run the same job |
+| **Payments** | A small `PaymentGateway` interface, with Stripe and a fake provider behind it |
+| **Tests** | JUnit 5 with Testcontainers (a real Postgres, not a mock), Playwright for the browser |
 
 ```mermaid
 flowchart LR
@@ -132,24 +148,31 @@ flowchart LR
     J[Scheduled jobs<br/>ShedLock] --> S
 ```
 
-- **The browser never calls the API.** The JWT sits in an httpOnly cookie and only Next.js
-  server code uses it, so a script injected into the page cannot steal it.
-- **Public pages carry a 256-bit random token** instead of a login, never a sequential id.
-- The backend is organized by feature: `auth`, `organization`, `client`, `product`, `tax`,
-  `quote`, `invoice`, `payment`, `recurring`, `jobs`, `currency`, `portal`, `audit`, `pdf`,
-  `mail`, `common`.
+A couple of choices I made on purpose:
 
-## The rules that make it trustworthy
+- **The browser never talks to the API directly.** The login token lives in a cookie that page
+  scripts can't read, and only the Next.js server uses it. Even if someone managed to inject
+  JavaScript into a page, they couldn't steal it.
+- **Public links use long random codes,** not `invoice/42`. You can't guess your way to someone
+  else's invoice by changing a number.
 
-### Money is never a float
+## The parts that took the most thought
 
-Stored as `amount_minor BIGINT` + `currency CHAR(3)` behind a `Money` value object that knows
-each currency's ISO 4217 decimals (**JOD, KWD, BHD and OMR have 3**, USD 2, JPY 0).
-`"1.005 USD"` is rejected, not rounded. Tax is rounded **per line**, half up, and totals are
-sums of rounded lines. Amounts travel as strings (`"1250.500"`), and the editor previews them
-with exact `BigInt` math.
+### Money
 
-### Every query is scoped to one organization, in one place
+Money is never stored as a decimal number, because `0.1 + 0.2` isn't `0.3` in most programming
+languages. Every amount is a whole number of the smallest unit (fils, cents) plus its currency,
+wrapped in a `Money` class that knows JOD has 3 decimals, USD has 2 and JPY has 0. If you type
+`1.005` for a USD price, it's rejected instead of being rounded behind your back. Tax is
+rounded on each line, the way it's printed, so the totals always add up on paper.
+
+### Keeping businesses apart
+
+Every table has an `organization_id`, and the app only ever takes it from your signed login
+token, never from the URL. Rather than remembering to add a filter to every query, Hibernate
+adds it automatically, so there's no query that can forget. The tests create two businesses and
+check that the first can't read, change, pay, email or download anything belonging to the
+second.
 
 ```mermaid
 sequenceDiagram
@@ -164,13 +187,11 @@ sequenceDiagram
     H->>H: every query: WHERE organization_id = A<br/>every insert: organization_id = A
 ```
 
-The organization comes **only** from the signed token, never from the URL or the body.
-Entities extend `TenantScopedEntity` (`@TenantId`), so Hibernate adds the filter to every
-query; nobody can forget a `WHERE`. Membership is re-checked on every request, so removing
-someone takes effect immediately. Tests register two companies and prove A cannot read,
-change, pay, email, download or link anything of B's.
+### The life of an invoice
 
-### Documents move through a state machine, in the domain
+An invoice can only move in certain directions. You can't pay a draft, and you can't un-void
+something. Those rules live in one table inside the `Invoice` class, not scattered across
+buttons and controllers.
 
 ```mermaid
 stateDiagram-v2
@@ -188,12 +209,15 @@ stateDiagram-v2
     OVERDUE --> VOID
 ```
 
-Quotes follow `DRAFT → SENT → ACCEPTED | REJECTED | EXPIRED`, and an accepted quote converts
-once. Transitions live in `Invoice` and `Quote` (one table each), never in controllers.
-Numbers come from a single atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`; a test issues
-20 invoices from 10 threads at once and gets exactly 0001–0020.
+Invoice numbers come from a single database statement that bumps a counter and returns it in
+one go. To check it, one test issues 20 invoices from 10 threads at the same time and makes sure
+it gets exactly 0001 to 0020, with no gaps and no duplicates.
 
-### Payments and webhooks are idempotent
+### Payments
+
+Payment providers retry their notifications, sometimes several times. Each notification is saved
+with its ID first, so if the same one arrives again it's simply ignored and the client isn't
+marked as paying twice. The signature is checked before anything else happens.
 
 ```mermaid
 sequenceDiagram
@@ -213,58 +237,62 @@ sequenceDiagram
     W-->>P: 200 DUPLICATE (nothing applied twice)
 ```
 
-Adding Tap, PayTabs or HyperPay is one class behind `PaymentGateway`. Stripe charges
-three-decimal currencies in 10-fils steps, so such amounts are refused up front.
+Adding a local provider like Tap, PayTabs or HyperPay would mean writing one new class.
 
-### Jobs never run twice
+### Jobs that never run twice
 
-Recurring periods are claimed with a unique `(template, period)` row, and reminders with
-`(invoice, day)`, so reruns, crashes and two racing instances never bill or email twice. A
-start date in the past never back-bills. Overdue marking and quote expiry use each
-organization's own midnight.
+Recurring invoices and reminders each claim their slot in the database first ("March for this
+template", "day 7 for this invoice"). If the server crashes halfway, or two servers run the job
+at once, the second attempt finds the slot taken and does nothing. Nobody gets billed or emailed
+twice.
 
-### Exchange rates are frozen
+### Exchange rates
 
-Issuing a USD invoice in a JOD company freezes `1 USD = 0.709 JOD` and its base total, and
-reports use those values forever. Rates come from the organization's own rates, then the
-official USD pegs (JOD, SAR, AED, QAR, BHD, OMR), then ECB reference rates. With none,
-issuing is refused rather than guessed.
+When you issue a USD invoice in a JOD business, the rate of that day is saved on the invoice.
+Reports use that saved rate forever, so last year's numbers don't change when the dollar moves.
+If no rate is available, issuing is refused rather than guessed.
 
 ## Tests
 
 ```bash
-cd backend && ./mvnw verify        # ~195 unit + integration tests on real Postgres (Docker required)
-cd frontend && npm run e2e         # Playwright, with the API running on :8080
+cd backend && ./mvnw verify        # about 195 tests, on a real Postgres in Docker
+cd frontend && npm run e2e         # browser tests with Playwright (the API must be running)
 ```
 
-Highlights: currency decimals and rounding, state-machine tables, immutability, 20-thread
-numbering, tenant isolation for every feature, PDF text and embedded Arabic font, real SMTP
-through Mailpit, webhook signatures, replays and duplicates, job idempotency including two
-racing runs, time-zone-correct overdue marking, frozen exchange rates. CI runs all of it, plus
-lint, typecheck, a production build and both Docker images, on every push.
+They cover the things I'd be most worried about in production: rounding and decimals, the
+invoice rules, numbering under load, businesses not seeing each other's data, the Arabic in the
+PDF, emails actually arriving, forged or repeated payment notifications, and jobs running twice.
+GitHub Actions runs all of it on every push.
 
-## Deploy
+## Putting it online
 
 ```bash
-cp infra/.env.prod.example infra/.env.prod   # fill in real secrets
+cp infra/.env.prod.example infra/.env.prod   # then fill in real passwords and keys
 docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
 ```
 
-Only the web app (port 3000) is exposed. It forwards provider webhooks
-(`/api/v1/webhooks/{provider}`) to the API. Put a TLS proxy in front.
+Only the website (port 3000) is exposed; it passes payment notifications through to the API.
+Put HTTPS in front of it.
 
-## Project layout
+## What's in the folders
 
 ```
-backend/     Spring Boot API (com.fatoora.invoicing), Flyway migrations V1–V6
-frontend/    Next.js app: (auth), (app) workspace, /pay and /portal public pages, e2e/
-             scripts/seed-demo.mjs creates the demo business
-infra/       docker-compose for development and production
-docs/        screenshots and an example PDF
+backend/     the Spring Boot API, plus the database migrations
+frontend/    the Next.js website, browser tests, and the demo data script
+infra/       Docker setup for running locally and in production
+docs/        the screenshots and an example PDF
 ```
 
-Design notes for the interface live in [`frontend/DESIGN.md`](frontend/DESIGN.md).
+If you're curious about the look and feel, the design notes are in
+[`frontend/DESIGN.md`](frontend/DESIGN.md).
+
+## What I'd add next
+
+- A late-payment risk score that flags clients who usually pay late
+- Arabic for the whole interface, not just the PDFs
+- Local payment providers (Tap, PayTabs, HyperPay)
+- E-invoicing formats required by tax authorities in the region
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Use it, learn from it, build on it.
