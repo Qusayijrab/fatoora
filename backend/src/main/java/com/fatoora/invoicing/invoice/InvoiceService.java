@@ -216,10 +216,10 @@ public class InvoiceService {
         }
         if (recordedBy == null) {
             audit.record(invoice.getOrganizationId(), null, "invoice", invoice.getId(), "payment_recorded",
-                    "Payment of " + amount + " received online for " + invoice.getNumber(), data);
+                    "Payment of " + amount.toDisplayString() + " received online for " + invoice.getNumber(), data);
         } else {
             audit.record(invoice.getOrganizationId(), recordedBy, "invoice", invoice.getId(), "payment_recorded",
-                    "Payment of " + amount + " recorded for " + invoice.getNumber(), data);
+                    "Payment of " + amount.toDisplayString() + " recorded for " + invoice.getNumber(), data);
         }
         return payment;
     }
@@ -258,7 +258,7 @@ public class InvoiceService {
                 "Credit note " + number + " issued against " + original.getNumber(),
                 Map.of("number", number, "total", creditNote.getTotal().toString(), "invoice", original.getNumber()));
         audit.record("invoice", original.getId(), "credited",
-                "Credited " + creditNote.getTotal() + " by " + number,
+                "Credited " + creditNote.getTotal().toDisplayString() + " by " + number,
                 Map.of("creditNote", number, "status", original.getStatus().name()));
         return toResponse(original);
     }

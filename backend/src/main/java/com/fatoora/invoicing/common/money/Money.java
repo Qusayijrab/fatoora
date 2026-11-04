@@ -73,6 +73,18 @@ public record Money(long amountMinor, String currency) implements Comparable<Mon
         return toMajor().toPlainString();
     }
 
+    /** "JOD 1,250.500": for text people read (audit log, messages). APIs use {@link #toPlainString()}. */
+    public String toDisplayString() {
+        String plain = toPlainString();
+        boolean negative = plain.startsWith("-");
+        String digits = negative ? plain.substring(1) : plain;
+        int dot = digits.indexOf('.');
+        String whole = dot < 0 ? digits : digits.substring(0, dot);
+        String fraction = dot < 0 ? "" : digits.substring(dot);
+        String grouped = whole.replaceAll("\\B(?=(\\d{3})+(?!\\d))", ",");
+        return currency + " " + (negative ? "-" : "") + grouped + fraction;
+    }
+
     public Money plus(Money other) {
         requireSameCurrency(other);
         return new Money(Math.addExact(amountMinor, other.amountMinor), currency);

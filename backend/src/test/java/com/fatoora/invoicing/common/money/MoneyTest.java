@@ -58,6 +58,15 @@ class MoneyTest {
     }
 
     @Test
+    void displayStringGroupsThousandsAndKeepsEveryDecimal() {
+        assertThat(Money.ofMinor(1_250_500, "JOD").toDisplayString()).isEqualTo("JOD 1,250.500");
+        assertThat(Money.ofMinor(123_456_789, "USD").toDisplayString()).isEqualTo("USD 1,234,567.89");
+        assertThat(Money.ofMinor(1_000_000, "JPY").toDisplayString()).isEqualTo("JPY 1,000,000");
+        assertThat(Money.ofMinor(-150_000, "USD").toDisplayString()).isEqualTo("USD -1,500.00");
+        assertThat(Money.ofMinor(5, "USD").toDisplayString()).isEqualTo("USD 0.05");
+    }
+
+    @Test
     void timesRoundsHalfUpToTheMinorUnit() {
         // 0.333 JOD x 1.5 = 0.4995 -> 0.500
         assertThat(Money.parse("0.333", "JOD").times(new BigDecimal("1.5")).toPlainString()).isEqualTo("0.500");
