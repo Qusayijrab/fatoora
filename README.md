@@ -87,7 +87,7 @@ You need **Java 21**, **Node 24** or newer, and **Docker**.
 cp infra/.env.example infra/.env
 docker compose -f infra/docker-compose.yml up -d
 
-# 2. Start the API
+# 2. Start the API (the "dev" profile turns on the test payment provider)
 cd backend && ./mvnw spring-boot:run
 
 # 3. Start the website (in a new terminal)
@@ -178,6 +178,10 @@ docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
 ```
 
 Only the website (port 3000) is public. Put HTTPS in front of it.
+
+Set `PAYMENTS_PROVIDER=stripe` with your Stripe keys. The test provider lets anyone with a
+payment link mark an invoice paid, so the server won't start with it unless you also set
+`PAYMENTS_MOCK_ENABLED=true`. Only do that for a public demo.
 
 ## Folders
 
