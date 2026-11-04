@@ -28,3 +28,6 @@ frontend/playwright/.cache/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# graphify knowledge graph (local)
+graphify-out/

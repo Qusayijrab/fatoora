@@ -4,14 +4,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { StatusBadge } from "@/components/status-badge";
 import { StatusTabs } from "@/components/status-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getInvoices } from "@/lib/api";
-import { formatAmount, formatDate } from "@/lib/format";
+import { InvoiceTable } from "./invoice-table";
 
 export const metadata = { title: "Invoices" };
 
@@ -72,72 +70,11 @@ async function InvoiceList({ searchParams }: { searchParams: Promise<Search> }) 
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {creditNotes ? (
-          <p className="mb-4 text-sm text-muted-foreground">
-            Showing credit notes ·{" "}
-            <Link href="/invoices" className="text-primary hover:underline">
-              back to invoices
-            </Link>
-          </p>
-        ) : (
-          <StatusTabs base="/invoices" current={status} tabs={TABS} q={q} />
-        )}
-        <Form action="/invoices" className="mb-4 flex items-center gap-2">
-          {status && <input type="hidden" name="status" value={status} />}
-          <div className="relative w-64">
-            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input name="q" type="search" defaultValue={q} placeholder="Number or client" className="h-9 ps-8" aria-label="Search invoices" />
-          </div>
-        </Form>
-      </div>
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="ps-5">Number</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead className="hidden md:table-cell">Issued</TableHead>
-              <TableHead className="hidden md:table-cell">Due</TableHead>
-              <TableHead className="text-end">Total</TableHead>
-              <TableHead className="hidden text-end sm:table-cell">Balance</TableHead>
-              <TableHead className="pe-5 text-end">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {page.items.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  Nothing here{q ? ` for “${q}”` : ""}.
-                </TableCell>
-              </TableRow>
-            )}
-            {page.items.map((inv) => (
-              <TableRow key={inv.id} data-testid="invoice-row">
-                <TableCell className="figures py-3 ps-5 font-mono">
-                  <Link href={`/invoices/${inv.id}`} className="font-medium hover:underline">
-                    {inv.number ?? <span className="font-sans text-muted-foreground">Draft</span>}
-                  </Link>
-                </TableCell>
-                <TableCell className="max-w-56 truncate" dir="auto">
-                  {inv.client.name}
-                </TableCell>
-                <TableCell className="figures hidden text-muted-foreground md:table-cell">{formatDate(inv.issueDate)}</TableCell>
-                <TableCell className="figures hidden text-muted-foreground md:table-cell">{formatDate(inv.dueDate)}</TableCell>
-                <TableCell className="figures text-end whitespace-nowrap">
-                  <span className="text-muted-foreground">{inv.currency}</span> {formatAmount(inv.total.amount)}
-                </TableCell>
-                <TableCell className="figures hidden text-end whitespace-nowrap sm:table-cell">
-                  {inv.status === "VOID" || inv.status === "DRAFT" ? "—" : formatAmount(inv.balanceDue.amount)}
-                </TableCell>
-                <TableCell className="pe-5 text-end">
-                  <StatusBadge status={inv.status} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <InvoiceTable
+        invoices={page.items}
+        toolbar={<InvoiceToolbar status={status} q={q} creditNotes={creditNotes} />}
+        empty={<p className="py-10 text-center text-sm text-muted-foreground">Nothing here{q ? ` for “${q}”` : ""}.</p>}
+      />
       <p className="figures mt-3 text-xs text-muted-foreground">
         {page.total} {creditNotes ? "credit notes" : page.total === 1 ? "invoice" : "invoices"}
         {!creditNotes && (
@@ -150,5 +87,30 @@ async function InvoiceList({ searchParams }: { searchParams: Promise<Search> }) 
         )}
       </p>
     </>
+  );
+}
+
+/** Status tabs (or the credit-notes notice) and the server-side search, shown above the table. */
+function InvoiceToolbar({ status, q, creditNotes }: { status?: string; q?: string; creditNotes: boolean }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3 *:mb-0">
+      {creditNotes ? (
+        <p className="text-sm text-muted-foreground">
+          Showing credit notes ·{" "}
+          <Link href="/invoices" className="text-primary hover:underline">
+            back to invoices
+          </Link>
+        </p>
+      ) : (
+        <StatusTabs base="/invoices" current={status} tabs={TABS} q={q} />
+      )}
+      <Form action="/invoices" className="flex w-full items-center gap-2 sm:w-auto">
+        {status && <input type="hidden" name="status" value={status} />}
+        <div className="relative w-full sm:w-64">
+          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input name="q" type="search" defaultValue={q} placeholder="Number or client" className="h-9 ps-8" aria-label="Search invoices" />
+        </div>
+      </Form>
+    </div>
   );
 }
