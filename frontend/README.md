@@ -17,3 +17,4 @@ npm run dev                  # http://localhost:3000
 | `npm run typecheck` | Generates route types, then `tsc --noEmit` |
 | `npm run build` | Production build |
 | `npm run e2e` | Playwright tests (backend must be running on :8080) |
+| `npm run seed:demo` | Creates a demo business with six months of history through the API, and prints its login |
