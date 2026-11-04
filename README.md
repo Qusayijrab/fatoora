@@ -114,13 +114,15 @@ Step 4 creates **Nabati Design Studio**, a made-up design studio in Amman with s
 clients, invoices (some paid, some late), quotes and a monthly retainer. It prints a login you
 can use straight away.
 
-A few other things you can open while it's running:
+Once everything is running on your computer, these addresses work in your browser (they're
+local, so they won't open from GitHub):
 
-| | |
+| Address | What's there |
 |---|---|
-| Every email the app "sends" (nothing actually leaves your computer) | <http://localhost:8025> |
-| The stored PDF files | <http://localhost:9001> |
-| The API documentation, where you can try every endpoint | <http://localhost:8080/swagger-ui.html> |
+| `localhost:3000` | The app itself |
+| `localhost:8025` | Every email the app "sends". Nothing actually leaves your computer |
+| `localhost:9001` | The stored PDF files |
+| `localhost:8080/swagger-ui.html` | The API documentation, where you can try every endpoint |
 
 Payments use the fake checkout by default, so you can click "Pay" as much as you like.
 
