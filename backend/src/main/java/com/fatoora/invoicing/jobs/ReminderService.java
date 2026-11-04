@@ -101,7 +101,7 @@ public class ReminderService {
         }
         runner.inOrganization(due.organizationId(), () -> audit.record(due.organizationId(), null, "invoice",
                 due.invoiceId(), "reminder_sent", "Reminder sent to " + outgoing.to() + " (" + due.daysOverdue()
-                        + " days overdue)", Map.of("to", outgoing.to(), "daysOverdue", due.daysOverdue())));
+                        + (due.daysOverdue() == 1 ? " day" : " days") + " overdue)", Map.of("to", outgoing.to(), "daysOverdue", due.daysOverdue())));
         return true;
     }
 }
