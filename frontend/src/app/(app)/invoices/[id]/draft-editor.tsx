@@ -27,6 +27,7 @@ export function DraftInvoiceEditor({ invoice, data, timeZone }: { invoice: Invoi
       data={data}
       initial={{
         clientId: invoice.client.id,
+        clientName: invoice.client.name,
         currency: invoice.currency,
         issueDate: invoice.issueDate,
         endDate: invoice.dueDate,

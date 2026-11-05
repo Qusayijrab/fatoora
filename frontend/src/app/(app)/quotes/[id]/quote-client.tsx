@@ -18,6 +18,7 @@ export function QuoteDraftEditor({ quote, data }: { quote: Quote; data: EditorDa
       data={data}
       initial={{
         clientId: quote.client.id,
+        clientName: quote.client.name,
         currency: quote.currency,
         issueDate: quote.issueDate,
         endDate: quote.validUntil,

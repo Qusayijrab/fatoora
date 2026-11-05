@@ -128,19 +128,29 @@ export const getQuotes = (params: DocListParams = {}) => api<Page<QuoteSummary>>
 export const getQuote = (id: string) => api<Quote>(`/quotes/${encodeURIComponent(id)}`);
 
 /** Everything the document editor needs to offer pickers. */
-export async function getEditorData() {
-  const [me, clients, products, taxRates] = await Promise.all([
+/**
+ * What the quote and invoice editors need. Only the first page of clients and products is
+ * loaded; the pickers search the server for the rest. {@code presetClientId} (e.g. "new
+ * invoice for this client") is added when it is not on that page.
+ */
+export async function getEditorData(presetClientId?: string) {
+  const [me, page, products, taxRates] = await Promise.all([
     getMe(),
-    getClients({ size: 100 }),
-    getProducts({ size: 100 }),
+    getClients({ size: 20 }),
+    getProducts({ size: 20 }),
     getTaxRates(),
   ]);
+  let clients = page.items;
+  if (presetClientId && !clients.some((c) => c.id === presetClientId)) {
+    const preset = await getClient(presetClientId).catch(() => null);
+    if (preset && !preset.archived) clients = [preset, ...clients];
+  }
   // "Today" in the organization's time zone, not the server's.
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: me.organization?.timeZone ?? "UTC" }).format(new Date());
   return {
     today,
     orgCurrency: me.organization?.defaultCurrency ?? "JOD",
-    clients: clients.items,
+    clients,
     products: products.items,
     taxRates,
   };
