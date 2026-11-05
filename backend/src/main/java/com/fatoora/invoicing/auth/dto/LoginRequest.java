@@ -1,9 +1,10 @@
 package com.fatoora.invoicing.auth.dto;
 
+import com.fatoora.invoicing.common.validation.MaxUtf8Bytes;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record LoginRequest(@NotBlank @Size(max = 254) String email, @NotBlank @Size(max = 72) String password) {
+public record LoginRequest(@NotBlank @Size(max = 254) String email, @NotBlank @MaxUtf8Bytes(72) String password) {
 
     /** Never log or print the password. */
     @Override

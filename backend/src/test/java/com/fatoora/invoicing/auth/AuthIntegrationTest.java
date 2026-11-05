@@ -96,6 +96,32 @@ class AuthIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.errors.timeZone").exists());
     }
 
+    /** BCrypt's limit is 72 bytes, not characters: an Arabic letter is 2 bytes in UTF-8. */
+    @Test
+    void passwordLengthIsMeasuredInBytesSoLongArabicPasswordsGetA400NotA500() throws Exception {
+        String arabic40 = "كلمةسرطويلةجدا".repeat(3).substring(0, 40); // 40 letters = 80 bytes
+        String body = """
+                {"email":"%s","password":"%s","fullName":"Someone","organizationName":"Arabic Co",
+                 "defaultCurrency":"JOD","timeZone":"Asia/Amman"}""".formatted(uniqueEmail(), arabic40);
+        postJson("/api/v1/auth/register", null, body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.password").value(containsString("72 bytes")));
+        postJson("/api/v1/auth/login", null, """
+                {"email":"%s","password":"%s"}""".formatted(uniqueEmail(), arabic40))
+                .andExpect(status().isBadRequest());
+
+        // 36 Arabic letters = 72 bytes: exactly at the limit, accepted, and it logs in.
+        String arabic36 = arabic40.substring(0, 36);
+        String email = uniqueEmail();
+        postJson("/api/v1/auth/register", null, """
+                {"email":"%s","password":"%s","fullName":"Someone","organizationName":"Arabic Co",
+                 "defaultCurrency":"JOD","timeZone":"Asia/Amman"}""".formatted(email, arabic36))
+                .andExpect(status().isCreated());
+        postJson("/api/v1/auth/login", null, """
+                {"email":"%s","password":"%s"}""".formatted(email, arabic36))
+                .andExpect(status().isOk());
+    }
+
     @Test
     void protectedEndpointWithoutTokenIs401ProblemJson() throws Exception {
         getJson("/api/v1/me", null)
