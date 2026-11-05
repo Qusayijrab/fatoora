@@ -2,6 +2,7 @@ package com.fatoora.invoicing.invoice;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +29,16 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID>, JpaSpec
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from Invoice i where i.id = :id")
     Optional<Invoice> findForUpdate(@Param("id") UUID id);
+
+    /** Plain values, not an entity: reading them never puts a stale Invoice in the persistence context. */
+    interface CurrencyAndDate {
+        String getCurrency();
+
+        LocalDate getIssueDate();
+    }
+
+    @Query("select i.currency as currency, i.issueDate as issueDate from Invoice i where i.id = :id")
+    Optional<CurrencyAndDate> findCurrencyAndDate(@Param("id") UUID id);
 
     List<Invoice> findByCreditedInvoice_IdOrderByIssueDateAscCreatedAtAsc(UUID invoiceId);
 

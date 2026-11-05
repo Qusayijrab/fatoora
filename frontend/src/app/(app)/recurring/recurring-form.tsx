@@ -110,6 +110,7 @@ export function RecurringForm({ data, recurring }: { data: EditorData; recurring
         recurring
           ? {
               clientId: recurring.client.id,
+              clientName: recurring.client.name,
               currency: recurring.currency,
               issueDate: recurring.startDate,
               endDate: null,

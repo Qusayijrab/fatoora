@@ -8,6 +8,7 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchPicker } from "@/components/search-picker";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENCY_GROUPS } from "@/lib/currencies";
@@ -15,6 +16,7 @@ import { taxLabel } from "@/lib/format";
 import { amountPlaceholder, formatMinor, lineAmounts } from "@/lib/money";
 import type { Client, DocumentInput, FormState, Line, Product, TaxRate } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { searchClients, searchProducts } from "@/app/(app)/search-actions";
 
 const NO_TAX = "__none__";
 const CUSTOM = "__custom__";
@@ -32,6 +34,7 @@ type EditorLine = {
 export type EditorData = {
   orgCurrency: string;
   today: string;
+  /** The first page of clients and products; the pickers search the server for the rest. */
   clients: Client[];
   products: Product[];
   taxRates: TaxRate[];
@@ -39,6 +42,8 @@ export type EditorData = {
 
 type Initial = {
   clientId: string;
+  /** Shown even when the client is archived or not in the first page. */
+  clientName: string;
   currency: string;
   issueDate: string;
   endDate: string | null;
@@ -97,6 +102,11 @@ export function DocumentEditor({
 
   const presetClient = data.clients.find((c) => c.id === (initial?.clientId ?? presetClientId));
   const [clientId, setClientId] = useState(initial?.clientId ?? presetClient?.id ?? "");
+  const [clientName, setClientName] = useState<string | null>(initial?.clientName ?? presetClient?.name ?? null);
+  // Names of catalog products seen so far (first page, search results), for the line pickers.
+  const [productNames, setProductNames] = useState<Map<string, string>>(
+    () => new Map(data.products.map((p) => [p.id, p.name])),
+  );
   const [currency, setCurrency] = useState(initial?.currency ?? presetClient?.currency ?? data.orgCurrency);
   const [currencyTouched, setCurrencyTouched] = useState(!!initial);
   const [issueDate, setIssueDate] = useState(initial?.issueDate ?? data.today);
@@ -132,13 +142,8 @@ export function DocumentEditor({
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   }
 
-  function pickProduct(key: string, productId: string) {
-    if (productId === CUSTOM) {
-      update(key, { productId: null });
-      return;
-    }
-    const p = data.products.find((x) => x.id === productId);
-    if (!p) return;
+  function pickProduct(key: string, p: Product) {
+    setProductNames((m) => new Map(m).set(p.id, p.name));
     const samePrice = p.unitPrice.currency === currency;
     if (!samePrice) toast.info(`${p.name} is priced in ${p.unitPrice.currency}. Enter the ${currency} price.`);
     update(key, {
@@ -150,10 +155,10 @@ export function DocumentEditor({
     });
   }
 
-  function chooseClient(id: string) {
-    setClientId(id);
-    const c = data.clients.find((x) => x.id === id);
-    if (!currencyTouched) setCurrency(c?.currency ?? data.orgCurrency);
+  function chooseClient(c: Client) {
+    setClientId(c.id);
+    setClientName(c.name);
+    if (!currencyTouched) setCurrency(c.currency ?? data.orgCurrency);
   }
 
   function changeIssueDate(value: string) {
@@ -203,7 +208,7 @@ export function DocumentEditor({
       <div className={cn("grid gap-4 sm:grid-cols-2", hideDates ? "lg:grid-cols-[2fr_1fr]" : "lg:grid-cols-[2fr_1.4fr_1fr_1fr]")}>
         <div className="grid content-start gap-1.5 sm:col-span-2 lg:col-span-1">
           <Label htmlFor={`client-${uid}`}>Client</Label>
-          {data.clients.length === 0 ? (
+          {data.clients.length === 0 && !clientId ? (
             <p className="text-sm text-muted-foreground">
               No clients yet.{" "}
               <Link href="/clients/new" className="font-medium text-primary underline-offset-4 hover:underline">
@@ -212,18 +217,20 @@ export function DocumentEditor({
               .
             </p>
           ) : (
-            <Select value={clientId} onValueChange={chooseClient}>
-              <SelectTrigger id={`client-${uid}`} className="w-full" aria-invalid={!!err("clientId") || undefined}>
-                <SelectValue placeholder="Choose a client" />
-              </SelectTrigger>
-              <SelectContent>
-                {data.clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchPicker
+              id={`client-${uid}`}
+              value={clientId || null}
+              selectedLabel={clientName}
+              placeholder="Choose a client"
+              searchPlaceholder="Search clients"
+              initial={data.clients}
+              search={searchClients}
+              getId={(c) => c.id}
+              getLabel={(c) => c.name}
+              getHint={(c) => c.email ?? c.taxId}
+              onSelect={chooseClient}
+              ariaInvalid={!!err("clientId")}
+            />
           )}
           {err("clientId") && <p className="text-sm text-destructive">Choose a client</p>}
         </div>
@@ -297,20 +304,22 @@ export function DocumentEditor({
                 <tr key={line.key} data-testid="editor-line" className="align-top max-sm:relative max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-3 max-sm:gap-y-3 max-sm:p-3">
                   <td className="px-3 py-2.5 max-sm:col-span-2 max-sm:p-0 max-sm:pe-10">
                     <div className="grid gap-1.5">
-                      {data.products.length > 0 && (
-                        <Select value={line.productId ?? CUSTOM} onValueChange={(v) => pickProduct(line.key, v)}>
-                          <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label={`Product for line ${i + 1}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={CUSTOM}>Custom item</SelectItem>
-                            {data.products.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {(data.products.length > 0 || line.productId) && (
+                        <SearchPicker
+                          size="sm"
+                          value={line.productId ?? CUSTOM}
+                          selectedLabel={line.productId ? (productNames.get(line.productId) ?? "Catalog item") : "Custom item"}
+                          placeholder="Custom item"
+                          searchPlaceholder="Search products"
+                          initial={data.products}
+                          search={searchProducts}
+                          getId={(p) => p.id}
+                          getLabel={(p) => p.name}
+                          getHint={(p) => p.sku}
+                          onSelect={(p) => pickProduct(line.key, p)}
+                          pinned={[{ id: CUSTOM, label: "Custom item", onSelect: () => update(line.key, { productId: null }) }]}
+                          ariaLabel={`Product for line ${i + 1}`}
+                        />
                       )}
                       <Textarea
                         rows={1}

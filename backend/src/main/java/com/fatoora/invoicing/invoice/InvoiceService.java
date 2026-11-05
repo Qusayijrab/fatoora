@@ -188,10 +188,15 @@ public class InvoiceService {
     @Transactional
     public InvoiceResponse issue(UUID id, boolean keepDates) {
         CurrentTenant tenant = TenantContext.require();
+        Organization org = organizations.currentEntity();
+        LocalDate today = organizations.today(org, clock);
+        // Look the rate up before locking the row: an external rate source (ECB) is then
+        // called without holding the lock, and the locked lookup below hits its cache.
+        invoices.findCurrencyAndDate(id).ifPresent(draft -> fx.find(draft.getCurrency(), org.getDefaultCurrency(),
+                keepDates ? draft.getIssueDate() : today));
         Invoice invoice = loadForUpdate(id);
         invoice.requireIssuable();
-        Organization org = organizations.currentEntity();
-        invoice.dateForIssue(organizations.today(org, clock), keepDates);
+        invoice.dateForIssue(today, keepDates);
         // Rate first: if there is none, nothing (not even a number) is used up.
         FxService.Rate rate = fx.rateFor(invoice.getCurrency(), org.getDefaultCurrency(), invoice.getIssueDate());
         String number = numbers.next(tenant.organizationId(), DocType.INVOICE, invoice.getIssueDate().getYear());

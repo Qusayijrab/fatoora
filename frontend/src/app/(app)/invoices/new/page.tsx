@@ -26,6 +26,7 @@ export default function NewInvoicePage({ searchParams }: PageProps<"/invoices/ne
 }
 
 async function Editor({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
-  const [{ client }, data] = await Promise.all([searchParams, getEditorData()]);
+  const { client } = await searchParams;
+  const data = await getEditorData(client);
   return <NewInvoiceEditor data={data} presetClientId={client} />;
 }
