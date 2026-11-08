@@ -1,5 +1,6 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getToken } from "./session";
 import type {
@@ -50,9 +51,30 @@ type Options = {
  * (token expired or invalid), the user is sent to /session-expired, which clears
  * the cookie and shows the login page.
  */
+/**
+ * The visitor's address, for the backend's rate limits (every API call comes from this
+ * server, so the backend can't see it otherwise). Taken from the reverse proxy in front
+ * of Next.js: X-Real-IP, or the last X-Forwarded-For entry, which the proxy appends.
+ * Never the first entry: a visitor can put anything there.
+ */
+async function visitorIp(): Promise<string | null> {
+  try {
+    const h = await headers();
+    const real = h.get("x-real-ip")?.trim();
+    if (real) return real;
+    const chain = h.get("x-forwarded-for");
+    const last = chain?.split(",").pop()?.trim();
+    return last || null;
+  } catch {
+    return null; // outside a request (e.g. at build time)
+  }
+}
+
 export async function api<T>(path: string, { method = "GET", body, auth = true }: Options = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
+  const ip = await visitorIp();
+  if (ip) headers["X-Forwarded-For"] = ip;
   if (auth) {
     const token = await getToken();
     if (!token) redirect("/login");

@@ -4,6 +4,8 @@ import com.fatoora.invoicing.audit.AuditService;
 import com.fatoora.invoicing.common.Strings;
 import com.fatoora.invoicing.common.error.ApiException;
 import com.fatoora.invoicing.common.tenancy.CurrentTenant;
+import com.fatoora.invoicing.common.ratelimit.RateLimiter;
+import com.fatoora.invoicing.common.ratelimit.RateLimits;
 import com.fatoora.invoicing.common.tenancy.TenantContext;
 import com.fatoora.invoicing.invoice.Invoice;
 import com.fatoora.invoicing.invoice.InvoiceKind;
@@ -22,6 +24,7 @@ import com.fatoora.invoicing.quote.QuoteStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import java.util.HashMap;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -53,9 +56,14 @@ public class DocumentEmailService {
     private final TransactionTemplate readTx;
     private final java.util.Optional<PayLinkProvider> payLinks;
 
+    private final RateLimiter limiter;
+    private final RateLimits limits;
+
     public DocumentEmailService(InvoiceRepository invoices, QuoteRepository quotes, OrganizationService organizations,
             DocumentPdfService pdfs, MailService mail, AuditService audit, TransactionTemplate tx,
-            java.util.Optional<PayLinkProvider> payLinks) {
+            java.util.Optional<PayLinkProvider> payLinks, RateLimiter limiter, RateLimits limits) {
+        this.limiter = limiter;
+        this.limits = limits;
         this.invoices = invoices;
         this.quotes = quotes;
         this.organizations = organizations;
@@ -68,8 +76,21 @@ public class DocumentEmailService {
         this.payLinks = payLinks;
     }
 
+    /**
+     * Anyone who signs up can email any address from our sender address, so emails a
+     * person sends are capped per organization. Scheduled sends (recurring invoices,
+     * reminders) run as the system, with no user, and are not counted.
+     */
+    private void limitPeopleSending(CurrentTenant tenant) {
+        if (tenant.userId() != null) {
+            limiter.hit("email-org", RateLimits.orgKey(tenant.organizationId()), limits.emailsPerOrganizationPerHour(),
+                    Duration.ofHours(1), "This organization has sent too many emails in the last hour. Try again later.");
+        }
+    }
+
     public EmailResult emailInvoice(UUID id, EmailRequest request) {
         CurrentTenant tenant = TenantContext.require();
+        limitPeopleSending(tenant);
         // Read-write: composing the email may create the invoice's payment link.
         OutgoingMail outgoing = tx.execute(status -> {
             Invoice invoice = invoices.findWithLinesById(id).orElseThrow(() -> ApiException.notFound("Invoice not found"));
@@ -103,6 +124,7 @@ public class DocumentEmailService {
 
     public EmailResult emailQuote(UUID id, EmailRequest request) {
         CurrentTenant tenant = TenantContext.require();
+        limitPeopleSending(tenant);
         OutgoingMail outgoing = readTx.execute(status -> {
             Quote quote = quotes.findWithLinesById(id).orElseThrow(() -> ApiException.notFound("Quote not found"));
             if (quote.getStatus() == QuoteStatus.DRAFT) {

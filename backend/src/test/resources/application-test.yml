@@ -14,5 +14,11 @@ app:
   payments:
     mock:
       enabled: true
+  # Every test signs up from the same address; the per-email login limit and the email
+  # limit stay low so tests can prove they work.
+  rate-limits:
+    logins-per-ip-per10-minutes: 100000
+    registrations-per-ip-per-hour: 100000
+    emails-per-organization-per-hour: 5
   jwt:
     secret: test-secret-test-secret-test-secret-0123

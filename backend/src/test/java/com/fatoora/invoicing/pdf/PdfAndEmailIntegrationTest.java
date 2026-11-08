@@ -83,6 +83,23 @@ class PdfAndEmailIntegrationTest extends IntegrationTest {
         postJson("/api/v1/invoices/" + id + "/email", b.token(), "{}").andExpect(status().isNotFound());
     }
 
+    /** The test profile allows 5 emails per organization per hour (production: 60). */
+    @Test
+    void emailsAPersonSendsAreCappedPerOrganization() throws Exception {
+        Account a = register("Spammy Co");
+        String id = issuedInvoice(a, "Target");
+        for (int i = 0; i < 5; i++) {
+            postJson("/api/v1/invoices/" + id + "/email", a.token(), "{}").andExpect(status().isOk());
+        }
+        postJson("/api/v1/invoices/" + id + "/email", a.token(), "{}")
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"));
+
+        // Another organization has its own allowance.
+        Account b = register("Quiet Co");
+        postJson("/api/v1/invoices/" + issuedInvoice(b, "Client") + "/email", b.token(), "{}").andExpect(status().isOk());
+    }
+
     @Test
     void emailGoesToTheClientWithThePdfAttached() throws Exception {
         Account a = register("Mail Co");

@@ -78,6 +78,8 @@ jobs:
       STORAGE_TYPE: memory
       FX_ECB_ENABLED: "false"
       PAYMENTS_MOCK_ENABLED: "true"
+      APP_RATELIMITS_LOGINSPERIPPER10MINUTES: "100000"
+      APP_RATELIMITS_REGISTRATIONSPERIPPERHOUR: "100000"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
