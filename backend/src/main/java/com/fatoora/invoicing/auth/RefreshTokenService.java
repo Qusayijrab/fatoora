@@ -92,6 +92,13 @@ public class RefreshTokenService {
         }
     }
 
+    /** Every session of the user, on every device (e.g. after a password reset). */
+    @Transactional
+    public void revokeAllForUser(UUID userId) {
+        jdbc.update("UPDATE refresh_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
+                Timestamp.from(clock.instant()), userId);
+    }
+
     private String insert(UUID familyId, UUID userId, UUID organizationId) {
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);

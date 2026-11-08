@@ -7,7 +7,10 @@ import com.fatoora.invoicing.common.ratelimit.RateLimiter;
 import com.fatoora.invoicing.common.ratelimit.RateLimits;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import com.fatoora.invoicing.common.validation.MaxUtf8Bytes;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.util.UUID;
@@ -28,9 +31,12 @@ public class AuthController {
     private final RateLimits limits;
     private final EmailVerificationService verification;
     private final RefreshTokenService refreshTokens;
+    private final PasswordResetService passwordResets;
 
     public AuthController(AuthService authService, RateLimiter limiter, RateLimits limits,
-            EmailVerificationService verification, RefreshTokenService refreshTokens) {
+            EmailVerificationService verification, RefreshTokenService refreshTokens,
+            PasswordResetService passwordResets) {
+        this.passwordResets = passwordResets;
         this.verification = verification;
         this.refreshTokens = refreshTokens;
         this.authService = authService;
@@ -68,6 +74,34 @@ public class AuthController {
     public record VerifyEmailRequest(@NotBlank @Size(max = 100) String token) {}
 
     public record RefreshRequest(@NotBlank @Size(max = 100) String refreshToken) {}
+
+    public record ForgotPasswordRequest(@NotBlank @Email @Size(max = 254) String email) {}
+
+    public record ResetPasswordRequest(
+            @NotBlank @Size(max = 100) String token,
+            @NotNull @Size(min = 8) @MaxUtf8Bytes(72) String password) {
+
+        @Override
+        public String toString() {
+            return "ResetPasswordRequest[]";
+        }
+    }
+
+    /** Emails a reset link if the address has an account; always 204, so it reveals nothing. */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest http) {
+        passwordResets.requestLink(request.email(), RateLimits.clientIp(http));
+    }
+
+    /** Sets a new password with the link from the email; signs out every session. */
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request, HttpServletRequest http) {
+        limiter.hit("reset-use-ip", RateLimits.clientIp(http), 30, Duration.ofMinutes(10),
+                "Too many attempts. Wait a few minutes and try again.");
+        passwordResets.reset(request.token(), request.password());
+    }
 
     /** A new access token and refresh token for a refresh token (public: the token is the permission). */
     @PostMapping("/refresh")

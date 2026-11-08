@@ -56,6 +56,10 @@ public class User extends BaseEntity {
         return emailVerifiedAt != null;
     }
 
+    void changePassword(String newHash) {
+        this.passwordHash = newHash;
+    }
+
     void markEmailVerified(Instant now) {
         if (emailVerifiedAt == null) {
             emailVerifiedAt = now;

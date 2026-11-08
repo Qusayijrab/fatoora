@@ -57,3 +57,28 @@ export async function verifyEmail(token: string): Promise<FormState> {
   }
   return { ok: true };
 }
+
+/** "Forgot password": always the same answer, whether or not the address has an account. */
+export async function forgotPassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = field(formData, "email").trim();
+  try {
+    await api("/auth/forgot-password", { method: "POST", body: { email }, auth: false });
+  } catch (e) {
+    return toFormState(e, { email });
+  }
+  return { ok: true, values: { email } };
+}
+
+/** Sets the new password with the token from the email link. */
+export async function resetPassword(token: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const password = field(formData, "password");
+  if (password !== field(formData, "confirm")) {
+    return { error: "The two passwords don't match.", fieldErrors: { confirm: "doesn't match the password above" } };
+  }
+  try {
+    await api("/auth/reset-password", { method: "POST", body: { token, password }, auth: false });
+  } catch (e) {
+    return toFormState(e);
+  }
+  return { ok: true };
+}
