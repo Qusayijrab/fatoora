@@ -21,6 +21,7 @@ import type {
   Overview,
   Page,
   PaymentProblem,
+  Forecast,
   Product,
   Summary,
   TaxRate,
@@ -42,6 +43,8 @@ export class ApiError extends Error {
 type Options = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  /** Sent as-is instead of JSON (e.g. a CSV file), with this content type. */
+  text?: { body: string; contentType: string };
   /** Send the session token? Off for login/register. */
   auth?: boolean;
 };
@@ -70,9 +73,10 @@ async function visitorIp(): Promise<string | null> {
   }
 }
 
-export async function api<T>(path: string, { method = "GET", body, auth = true }: Options = {}): Promise<T> {
+export async function api<T>(path: string, { method = "GET", body, text, auth = true }: Options = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (text) headers["Content-Type"] = text.contentType;
   const ip = await visitorIp();
   if (ip) headers["X-Forwarded-For"] = ip;
   if (auth) {
@@ -84,7 +88,7 @@ export async function api<T>(path: string, { method = "GET", body, auth = true }
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: text ? text.body : body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
 
@@ -190,6 +194,7 @@ export const getRecurring = (id: string) => api<Recurring>(`/recurring/${encodeU
 export const getRecurringRuns = (id: string) => api<RecurringRun[]>(`/recurring/${encodeURIComponent(id)}/runs`);
 export const getOverview = () => api<Overview>("/dashboard/overview");
 export const getPaymentProblems = () => api<PaymentProblem[]>("/payment-problems");
+export const getForecast = () => api<Forecast>("/dashboard/forecast");
 export const getExchangeRates = () => api<ExchangeRate[]>("/exchange-rates");
 export const previewRate = (currency: string) =>
   api<{ currency: string; baseCurrency: string; rate: string | null; source: string | null; date: string }>(

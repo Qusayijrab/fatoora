@@ -125,6 +125,9 @@ public final class InvoiceDtos {
             MoneyDto totalBase,
             Instant issuedAt,
             Instant voidedAt,
+            Instant firstViewedAt,
+            Instant lastViewedAt,
+            int viewCount,
             String voidReason,
             Instant createdAt) {
 
@@ -150,7 +153,8 @@ public final class InvoiceDtos {
                     credited == null ? null : new DocumentRef(credited.getId(), credited.getNumber()),
                     i.getQuoteId(), i.getBaseCurrency(),
                     i.getExchangeRate() == null ? null : i.getExchangeRate().stripTrailingZeros().toPlainString(),
-                    i.getRateSource(), MoneyDto.from(i.getTotalBase()), i.getIssuedAt(), i.getVoidedAt(), i.getVoidReason(), i.getCreatedAt());
+                    i.getRateSource(), MoneyDto.from(i.getTotalBase()), i.getIssuedAt(), i.getVoidedAt(),
+                    i.getFirstViewedAt(), i.getLastViewedAt(), i.getViewCount(), i.getVoidReason(), i.getCreatedAt());
         }
     }
 }

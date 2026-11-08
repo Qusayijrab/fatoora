@@ -15,6 +15,7 @@ import com.fatoora.invoicing.invoice.InvoiceStatus;
 import com.fatoora.invoicing.organization.OrganizationService;
 import com.fatoora.invoicing.pdf.DocumentPdfService;
 import com.fatoora.invoicing.pdf.DocumentPdfService.PdfFile;
+import com.fatoora.invoicing.invoice.InvoiceViews;
 import com.fatoora.invoicing.publiclink.PublicLink;
 import com.fatoora.invoicing.publiclink.PublicLinkService;
 import com.fatoora.invoicing.quote.Quote;
@@ -58,9 +59,12 @@ public class PortalService {
     private final TenantRunner runner;
     private final Clock clock;
 
+    private final InvoiceViews views;
+
     public PortalService(PublicLinkService links, ClientService clients, InvoiceRepository invoices,
             QuoteRepository quotes, OrganizationService organizations, DocumentPdfService pdfs, AuditService audit,
-            TenantRunner runner, Clock clock) {
+            TenantRunner runner, Clock clock, InvoiceViews views) {
+        this.views = views;
         this.links = links;
         this.clients = clients;
         this.invoices = invoices;
@@ -126,6 +130,7 @@ public class PortalService {
             Invoice invoice = invoices.findWithLinesById(invoiceId)
                     .filter(i -> i.getClient().getId().equals(link.getTargetId()) && i.getStatus() != InvoiceStatus.DRAFT)
                     .orElseThrow(() -> ApiException.notFound("Not found"));
+            views.record(link.getOrganizationId(), invoice.getId());
             return pdfs.invoicePdf(invoice, organizations.currentEntity());
         });
     }

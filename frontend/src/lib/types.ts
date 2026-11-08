@@ -209,6 +209,10 @@ export type Invoice = InvoiceSummary & {
   totalBase: Money | null;
   issuedAt: string | null;
   voidedAt: string | null;
+  /** When the client opened it (payment page, its PDF, or the portal). */
+  firstViewedAt: string | null;
+  lastViewedAt: string | null;
+  viewCount: number;
   voidReason: string | null;
   createdAt: string;
 };
@@ -380,3 +384,22 @@ export type PaymentProblem = {
 
 /** One credit note line: an original invoice line, how many units, and optionally a lower unit price. */
 export type CreditLineInput = { invoiceLineId: string; quantity: string; unitPrice: string | null };
+
+/** The result of checking (dry run) or importing a CSV file of clients or products. */
+export type ImportReport = {
+  imported: boolean;
+  ok: number;
+  skipped: number;
+  errors: number;
+  rows: { line: number; name: string; status: "OK" | "SKIP" | "ERROR"; messages: string[] }[];
+};
+
+/** Money expected in over the next 12 weeks, per week, in the base currency. */
+export type Forecast = {
+  baseCurrency: string;
+  weeks: { start: string; invoiced: Money; recurring: Money }[];
+  total: Money;
+  alreadyLate: Money;
+  clientsWithHistory: number;
+  skippedRecurring: number;
+};

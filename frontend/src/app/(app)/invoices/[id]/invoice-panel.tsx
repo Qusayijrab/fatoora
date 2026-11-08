@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CircleDollarSign, Copy, ExternalLink, FileMinus, Link2, Undo2 } from "lucide-react";
+import { Ban, CircleDollarSign, Copy, ExternalLink, Eye, FileMinus, Link2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useActionState, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -87,6 +87,14 @@ export function InvoicePanel({
               </>
             )}
           </dl>
+          {invoice.status !== "VOID" && (
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="viewed">
+              <Eye className="size-3.5" aria-hidden />
+              {invoice.viewCount > 0
+                ? `Opened by the client ${invoice.viewCount === 1 ? "once" : `${invoice.viewCount} times`}, last on ${formatDate(invoice.lastViewedAt)}`
+                : "Not opened by the client yet"}
+            </p>
+          )}
           {invoice.totalBase && invoice.baseCurrency !== invoice.currency && (
             <p className="figures mt-3 border-t pt-3 text-xs text-muted-foreground" data-testid="frozen-rate">
               1 {invoice.currency} = {invoice.exchangeRate} {invoice.baseCurrency}

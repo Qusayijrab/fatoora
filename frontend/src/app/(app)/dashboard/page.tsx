@@ -2,6 +2,7 @@ import {
   Activity,
   AlarmClock,
   Building2,
+  CalendarClock,
   CircleDollarSign,
   FileText,
   Hourglass,
@@ -17,11 +18,12 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getMe, getOverview, getPaymentProblems, getSummary } from "@/lib/api";
+import { getForecast, getMe, getOverview, getPaymentProblems, getSummary } from "@/lib/api";
 import { currencyDecimals } from "@/lib/currencies";
 import { formatAmount, formatMoney } from "@/lib/format";
 import { canManageMembers, type Money, type Overview } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ForecastChart } from "./forecast-chart";
 import { MoneyChart } from "./money-chart";
 import { OnboardingRoute, type RouteStep } from "./onboarding-route";
 import { PaymentProblems } from "./payment-problems";
@@ -62,7 +64,12 @@ async function Dashboard() {
     );
   }
 
-  const [summary, overview, problems] = await Promise.all([getSummary(), getOverview(), getPaymentProblems()]);
+  const [summary, overview, problems, forecast] = await Promise.all([
+    getSummary(),
+    getOverview(),
+    getPaymentProblems(),
+    getForecast(),
+  ]);
   const count = (key: string) => summary[key] ?? 0;
   const steps: RouteStep[] = [
     { key: "company", title: "Set up your company", detail: `${org.name}, ${org.defaultCurrency}`, href: "/settings/organization", cta: "Review", done: true },
@@ -121,6 +128,13 @@ async function Dashboard() {
         </section>
         <Aging overview={overview} />
       </div>
+
+      <section className="rounded-xl border bg-card shadow-xs p-5 sm:p-6" aria-labelledby="forecast-title" data-testid="forecast">
+        <SectionTitle id="forecast-title" icon={CalendarClock} className="mb-4">
+          Expected cash in, next 12 weeks
+        </SectionTitle>
+        <ForecastChart forecast={forecast} decimals={currencyDecimals(forecast.baseCurrency)} />
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border bg-card shadow-xs p-5 sm:p-6" aria-labelledby="owed-title">

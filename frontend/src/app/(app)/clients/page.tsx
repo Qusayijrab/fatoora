@@ -1,4 +1,4 @@
-import { Contact, Plus } from "lucide-react";
+import { Contact, FileUp, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
@@ -22,11 +22,18 @@ export default function ClientsPage({ searchParams }: PageProps<"/clients">) {
         title="Clients"
         description="The businesses and people you bill. Their details are copied onto each invoice when it is issued."
         actions={
-          <Button asChild>
-            <Link href="/clients/new">
-              <Plus /> New client
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/clients/import">
+                <FileUp /> Import CSV
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/clients/new">
+                <Plus /> New client
+              </Link>
+            </Button>
+          </>
         }
       />
       <Suspense fallback={<Skeleton className="h-72 w-full" />}>
