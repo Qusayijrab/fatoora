@@ -26,8 +26,6 @@ export default function ClientPage({ params }: PageProps<"/clients/[id]">) {
 async function ClientDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [client, me] = await Promise.all([getClient(id), getMe()]);
-  // "Today" in the organization's time zone, for the statement's default period.
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: me.organization?.timeZone ?? "UTC" }).format(new Date());
 
   return (
     <>
@@ -45,7 +43,7 @@ async function ClientDetail({ params }: { params: Promise<{ id: string }> }) {
       </div>
       <div className="grid gap-6">
         {!client.archived && <PortalBox clientId={client.id} />}
-        <StatementBox clientId={client.id} today={today} />
+        <StatementBox clientId={client.id} timeZone={me.organization?.timeZone ?? "UTC"} />
         <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
           <ClientForm key={client.id} client={client} />
         </div>

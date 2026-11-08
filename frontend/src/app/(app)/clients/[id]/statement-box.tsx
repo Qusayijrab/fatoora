@@ -7,8 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /** Statement of account (كشف حساب): every invoice, payment and credit note for a period, as a PDF. */
-export function StatementBox({ clientId, today }: { clientId: string; today: string }) {
+/** YYYY-MM-DD for today in the organization's time zone. */
+function todayIn(timeZone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+export function StatementBox({ clientId, timeZone }: { clientId: string; timeZone: string }) {
   const uid = useId();
+  const [today] = useState(() => todayIn(timeZone));
   const [from, setFrom] = useState(`${today.slice(0, 4)}-01-01`);
   const [to, setTo] = useState(today);
   const valid = from !== "" && to !== "" && from <= to;
