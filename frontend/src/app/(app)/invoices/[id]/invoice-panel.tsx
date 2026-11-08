@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useActionFeedback } from "@/hooks/use-action-feedback";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
+import { formatMinor, lineAmounts } from "@/lib/money";
 import type { FormState, Invoice, PaymentMethod } from "@/lib/types";
 import { createCreditNote, getPaymentLink, recordPayment, recordRefund, voidInvoice } from "../actions";
 
@@ -310,22 +311,49 @@ function RefundDialog({ invoice }: { invoice: Invoice }) {
   );
 }
 
+/**
+ * A credit note returns lines of this invoice: units given back, or a lower unit price.
+ * It can't add new lines or credit more than was invoiced (the server enforces both).
+ */
 function CreditNoteDialog({ invoice }: { invoice: Invoice }) {
   const uid = useId();
   const [openDialog, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [amount, setAmount] = useState("");
+  const [rows, setRows] = useState<Record<string, { quantity: string; unitPrice: string }>>({});
   const [pending, startTransition] = useTransition();
+  const left = (lineId: string) => invoice.creditable.find((c) => c.lineId === lineId);
+
+  const chosen = invoice.lines
+    .map((l) => ({ line: l, row: rows[l.id] ?? { quantity: "", unitPrice: l.unitPrice.amount } }))
+    .filter(({ row }) => row.quantity.trim() !== "" && row.quantity.trim() !== "0");
+  const amounts = chosen.map(({ line, row }) => lineAmounts(row.unitPrice, row.quantity, line.taxRate, invoice.currency));
+  const total = amounts.reduce((sum, a) => sum + (a?.total ?? 0n), 0n);
+  const invalid = chosen.length === 0 || amounts.some((a) => a === null);
+
+  function set(lineId: string, patch: Partial<{ quantity: string; unitPrice: string }>, fallbackPrice: string) {
+    setRows((r) => {
+      const prev = r[lineId] ?? { quantity: "", unitPrice: fallbackPrice };
+      return { ...r, [lineId]: { ...prev, ...patch } };
+    });
+  }
 
   function submit() {
     startTransition(async () => {
-      const result = await createCreditNote(invoice.id, reason.trim(), [
-        { productId: null, description: reason.trim() || "Credit", quantity: "1", unit: null, unitPrice: amount.trim(), taxRateId: null },
-      ]);
+      const result = await createCreditNote(
+        invoice.id,
+        reason.trim(),
+        chosen.map(({ line, row }) => ({
+          invoiceLineId: line.id,
+          quantity: row.quantity.trim(),
+          unitPrice: row.unitPrice.trim() === line.unitPrice.amount ? null : row.unitPrice.trim(),
+        })),
+      );
       if (result.error) toast.error(result.error);
       else {
         toast.success("Credit note issued");
         setOpen(false);
+        setRows({});
+        setReason("");
       }
     });
   }
@@ -337,26 +365,77 @@ function CreditNoteDialog({ invoice }: { invoice: Invoice }) {
           <FileMinus /> Issue credit note
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Issue a credit note</DialogTitle>
           <DialogDescription>
             {invoice.status === "PAID"
               ? `Corrects ${invoice.number} without editing it. It is already paid, so the credited amount becomes a refund owed to the client.`
               : `Reduces what the client owes on ${invoice.number} without editing it. Anything beyond the balance due becomes a refund owed to the client.`}{" "}
-            It gets its own number (CN-…) and stays on record.
+            Choose how many units of each line to credit; lower the unit price to credit a price reduction instead.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <FormField id={`reason-${uid}`} label="Reason (printed on the credit note)">
-            <Textarea id={`reason-${uid}`} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Discount agreed after delivery" />
+            <Textarea id={`reason-${uid}`} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Two items returned" />
           </FormField>
-          <FormField id={`credit-${uid}`} label={`Amount to credit (${invoice.currency}, tax included)`}>
-            <Input id={`credit-${uid}`} inputMode="decimal" className="figures" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </FormField>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-start font-medium">Line</th>
+                  <th className="px-3 py-2 text-end font-medium">Left to credit</th>
+                  <th className="px-3 py-2 text-end font-medium">Quantity</th>
+                  <th className="px-3 py-2 text-end font-medium">Unit price</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {invoice.lines.map((l, i) => {
+                  const remaining = left(l.id);
+                  const done = !remaining || remaining.quantity === "0";
+                  const row = rows[l.id] ?? { quantity: "", unitPrice: l.unitPrice.amount };
+                  return (
+                    <tr key={l.id} className={done ? "text-muted-foreground" : undefined}>
+                      <td className="px-3 py-2" dir="auto">
+                        {l.description}
+                      </td>
+                      <td className="figures px-3 py-2 text-end">
+                        {remaining ? `${remaining.quantity} · ${formatAmount(remaining.amount.amount)}` : "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          inputMode="decimal"
+                          className="figures ms-auto h-8 w-20 text-end"
+                          aria-label={`Quantity to credit for line ${i + 1}`}
+                          placeholder="0"
+                          disabled={done}
+                          value={row.quantity}
+                          onChange={(e) => set(l.id, { quantity: e.target.value }, l.unitPrice.amount)}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          inputMode="decimal"
+                          className="figures ms-auto h-8 w-28 text-end"
+                          aria-label={`Unit price to credit for line ${i + 1}`}
+                          disabled={done}
+                          value={row.unitPrice}
+                          onChange={(e) => set(l.id, { unitPrice: e.target.value }, l.unitPrice.amount)}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="figures text-end text-sm" data-testid="credit-total">
+            Credit total, tax included:{" "}
+            <span className="font-semibold">{invalid ? "—" : `${invoice.currency} ${formatMinor(total, invoice.currency)}`}</span>
+          </p>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={pending || !reason.trim() || !amount.trim()}>
+          <Button onClick={submit} disabled={pending || !reason.trim() || invalid}>
             {pending ? "Issuing…" : "Issue credit note"}
           </Button>
         </DialogFooter>

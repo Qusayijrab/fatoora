@@ -99,6 +99,23 @@ public class RecurringTemplate extends TenantScopedEntity {
     @Column(name = "last_run_at")
     private Instant lastRunAt;
 
+    /** Consecutive failed runs; reset by a successful one. */
+    @Column(name = "failure_count", nullable = false)
+    private int failureCount;
+
+    @Column(name = "last_error", columnDefinition = "text")
+    private String lastError;
+
+    @Column(name = "last_failed_at")
+    private Instant lastFailedAt;
+
+    @Column(name = "paused_at")
+    private Instant pausedAt;
+
+    /** Paused by the system after {@link #MAX_FAILURES} failures, not by a person. */
+    @Column(name = "paused_by_failure", nullable = false)
+    private boolean pausedByFailure;
+
     @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position")
     private List<RecurringTemplateLine> lines = new ArrayList<>();
@@ -188,6 +205,8 @@ public class RecurringTemplate extends TenantScopedEntity {
     void advance(Instant now) {
         runCount++;
         lastRunAt = now;
+        failureCount = 0;
+        lastError = null;
         nextRunDate = frequency.nthDate(startDate, runCount, intervalCount);
         endIfPastEndDate();
     }
@@ -199,19 +218,51 @@ public class RecurringTemplate extends TenantScopedEntity {
         }
     }
 
-    void pause() {
+    /** After this many failed runs in a row the template pauses itself. */
+    public static final int MAX_FAILURES = 3;
+
+    void pause(Instant now) {
         if (status != Status.ACTIVE) {
             throw ApiException.conflict("Only active recurring invoices can be paused");
         }
         status = Status.PAUSED;
+        pausedAt = now;
+        pausedByFailure = false;
     }
 
-    /** Resuming skips periods that passed while paused: no back-billing. */
+    /**
+     * Records a failed run (nothing was generated). Returns true if this failure paused the
+     * template, so the caller can tell the owners exactly once.
+     */
+    boolean recordFailure(String error, Instant now) {
+        failureCount++;
+        lastError = error;
+        lastFailedAt = now;
+        if (status == Status.ACTIVE && failureCount >= MAX_FAILURES) {
+            status = Status.PAUSED;
+            pausedAt = now;
+            pausedByFailure = true;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resuming after a manual pause skips periods that passed meanwhile: no back-billing.
+     * After a pause caused by failures, the failed period was never invoiced, so it is kept
+     * and tried again on the next run.
+     */
     void resume(LocalDate today) {
         if (status != Status.PAUSED) {
             throw ApiException.conflict("Only paused recurring invoices can be resumed");
         }
         status = Status.ACTIVE;
+        pausedAt = null;
+        failureCount = 0;
+        if (pausedByFailure) {
+            pausedByFailure = false;
+            return; // lastError stays visible until the next run succeeds
+        }
         while (nextRunDate != null && nextRunDate.isBefore(today)) {
             runCount++;
             nextRunDate = frequency.nthDate(startDate, runCount, intervalCount);
@@ -274,6 +325,22 @@ public class RecurringTemplate extends TenantScopedEntity {
 
     public Status getStatus() {
         return status;
+    }
+
+    public int getFailureCount() {
+        return failureCount;
+    }
+
+    public String getLastError() {
+        return lastError;
+    }
+
+    public Instant getLastFailedAt() {
+        return lastFailedAt;
+    }
+
+    public boolean isPausedByFailure() {
+        return pausedByFailure;
     }
 
     public String getNotes() {

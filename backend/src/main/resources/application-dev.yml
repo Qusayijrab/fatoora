@@ -3,3 +3,7 @@ app:
   payments:
     mock:
       enabled: true
+  # Local browser tests sign up many accounts from one machine.
+  rate-limits:
+    logins-per-ip-per10-minutes: 100000
+    registrations-per-ip-per-hour: 100000

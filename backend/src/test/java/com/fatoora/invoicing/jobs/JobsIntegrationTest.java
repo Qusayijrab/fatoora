@@ -111,6 +111,55 @@ class JobsIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void aFailingRecurringInvoicePausesAfterThreeTriesTellsTheOwnerAndRetriesTheMissedPeriodOnResume() throws Exception {
+        Account a = register("Euro Rent Co"); // base JOD; no EUR rate (ECB is off in tests), so issuing fails
+        String id = read(postJson("/api/v1/recurring", a.token(), """
+                {"clientId":"%s","name":"Berlin office","currency":"EUR","frequency":"MONTHLY","startDate":"%s",
+                 "paymentTermsDays":10,"autoIssue":true,"autoEmail":false,"lines":[%s]}"""
+                .formatted(createClient(a, "Berlin GmbH"), today(), line("Rent", "1", "900", null)))
+                .andExpect(status().isCreated()), "$.id");
+
+        jobs.runRecurring(noon(today()));
+        jobs.runRecurring(noon(today()));
+        getJson("/api/v1/recurring/" + id, a.token())
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.failureCount").value(2))
+                .andExpect(jsonPath("$.lastError").value(org.hamcrest.Matchers.containsString("No exchange rate from EUR")));
+
+        jobs.runRecurring(noon(today()));
+        getJson("/api/v1/recurring/" + id, a.token())
+                .andExpect(jsonPath("$.status").value("PAUSED"))
+                .andExpect(jsonPath("$.pausedByFailure").value(true))
+                .andExpect(jsonPath("$.nextRunDate").value(today().toString()));
+        assertThat(invoiceCount(a)).isZero();
+
+        // The owner hears about it once.
+        String inbox = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(
+                mailpitApi + "/api/v1/search?query=" + URLEncoder.encode("to:" + a.email(), StandardCharsets.UTF_8))).build(),
+                HttpResponse.BodyHandlers.ofString()).body();
+        java.util.List<String> subjects = JsonPath.read(inbox, "$.messages[*].Subject");
+        assertThat(subjects).filteredOn(sub -> sub.contains("paused"))
+                .containsExactly("Recurring invoice \"Berlin office\" was paused");
+
+        // Paused: the job leaves it alone, and no more emails go out.
+        jobs.runRecurring(noon(today()));
+        getJson("/api/v1/recurring/" + id, a.token()).andExpect(jsonPath("$.failureCount").value(3));
+
+        // Fix the cause, resume: the missed period is generated (not skipped), and the failures clear.
+        postJson("/api/v1/exchange-rates", a.token(), """
+                {"currency":"EUR","rate":0.82}""").andExpect(status().isCreated());
+        postJson("/api/v1/recurring/" + id + "/resume", a.token(), null)
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.nextRunDate").value(today().toString()));
+        jobs.runRecurring(noon(today().plusDays(1)));
+        assertThat(invoiceCount(a)).isEqualTo(1);
+        getJson("/api/v1/recurring/" + id, a.token())
+                .andExpect(jsonPath("$.failureCount").value(0))
+                .andExpect(jsonPath("$.lastError").doesNotExist())
+                .andExpect(jsonPath("$.runCount").value(1));
+    }
+
+    @Test
     void generateNowAndPauseFromTheApi() throws Exception {
         Account a = register("Manual Co");
         String id = recurring(a, createClient(a, "C"), today().plusDays(10), false);

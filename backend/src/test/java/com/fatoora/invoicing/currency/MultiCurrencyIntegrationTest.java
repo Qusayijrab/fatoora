@@ -127,8 +127,9 @@ class MultiCurrencyIntegrationTest extends IntegrationTest {
         Account a = register("CN FX Co");
         String usd = invoice(a, createClient(a, "C"), "USD", "100");
         postJson("/api/v1/invoices/" + usd + "/issue", a.token(), null);
-        String cnId = read(postJson("/api/v1/invoices/" + usd + "/credit-notes", a.token(), """
-                {"reason":"Discount","lines":[%s]}""".formatted(line("Discount", "1", "20", null))), "$.creditNotes[0].id");
+        String lineId = read(getJson("/api/v1/invoices/" + usd, a.token()), "$.lines[0].id");
+        String cnId = read(postJson("/api/v1/invoices/" + usd + "/credit-notes", a.token(),
+                creditNote("Discount", creditLine(lineId, "1", "20"))), "$.creditNotes[0].id");
         getJson("/api/v1/invoices/" + cnId, a.token())
                 .andExpect(jsonPath("$.exchangeRate").value("0.709"))
                 .andExpect(jsonPath("$.totalBase.amount").value("14.180"));

@@ -2,6 +2,7 @@ package com.fatoora.invoicing.invoice;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,22 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID>, JpaSpec
     Optional<CurrencyAndDate> findCurrencyAndDate(@Param("id") UUID id);
 
     List<Invoice> findByCreditedInvoice_IdOrderByIssueDateAscCreatedAtAsc(UUID invoiceId);
+
+    /** How much of one invoice line its credit notes have credited so far. */
+    interface CreditedSoFar {
+        UUID getLineId();
+
+        BigDecimal getQuantity();
+
+        Long getTotalMinor();
+    }
+
+    @Query("""
+            select l.creditedLineId as lineId, sum(l.quantity) as quantity, sum(l.totalMinor) as totalMinor
+            from InvoiceLine l
+            where l.invoice.creditedInvoice.id = :invoiceId and l.creditedLineId is not null
+            group by l.creditedLineId""")
+    List<CreditedSoFar> creditedLines(@Param("invoiceId") UUID invoiceId);
 
     long countByKindAndNumberIsNotNull(InvoiceKind kind);
 

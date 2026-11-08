@@ -71,3 +71,13 @@ export async function removeMember(membershipId: string): Promise<FormState> {
   revalidatePath("/settings/members");
   return { ok: true };
 }
+
+/** "Resend" on the confirm-your-email banner. */
+export async function resendVerificationEmail(): Promise<FormState> {
+  try {
+    await api("/me/verification-email", { method: "POST" });
+  } catch (e) {
+    return toFormState(e);
+  }
+  return { ok: true };
+}

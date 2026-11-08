@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api, toFormState } from "@/lib/api";
-import type { DocumentInput, FormState, Invoice, LineInput } from "@/lib/types";
+import type { CreditLineInput, DocumentInput, FormState, Invoice } from "@/lib/types";
 
 function refresh(id?: string) {
   revalidatePath("/invoices");
@@ -108,7 +108,8 @@ export async function voidInvoice(id: string, reason: string): Promise<FormState
   return { ok: true };
 }
 
-export async function createCreditNote(id: string, reason: string, lines: LineInput[]): Promise<FormState> {
+/** Credits lines of the invoice itself (returned units, or a lower unit price). */
+export async function createCreditNote(id: string, reason: string, lines: CreditLineInput[]): Promise<FormState> {
   try {
     await api(`/invoices/${encodeURIComponent(id)}/credit-notes`, { method: "POST", body: { reason, lines } });
   } catch (e) {

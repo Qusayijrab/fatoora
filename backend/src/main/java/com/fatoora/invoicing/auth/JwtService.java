@@ -47,6 +47,6 @@ public class JwtService {
         }
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         String token = encoder.encode(JwtEncoderParameters.from(header, claims.build())).getTokenValue();
-        return new TokenResponse(token, "Bearer", properties.ttl().toSeconds());
+        return new TokenResponse(token, "Bearer", properties.ttl().toSeconds(), null, 0);
     }
 }

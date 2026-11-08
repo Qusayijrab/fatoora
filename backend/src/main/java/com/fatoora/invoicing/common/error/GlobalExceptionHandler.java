@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import com.fatoora.invoicing.common.ratelimit.RateLimiter;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -34,6 +35,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ResponseEntity.BodyBuilder response = ResponseEntity.status(ex.getStatus());
         if (ex.getStatus() == HttpStatus.UNAUTHORIZED) {
             response.header(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+        }
+        if (ex instanceof RateLimiter.LimitExceeded limited) {
+            response.header(HttpHeaders.RETRY_AFTER, Long.toString(limited.getRetryAfterSeconds()));
         }
         return response.body(problem);
     }

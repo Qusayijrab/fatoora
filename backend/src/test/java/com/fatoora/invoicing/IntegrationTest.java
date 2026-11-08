@@ -47,6 +47,9 @@ public abstract class IntegrationTest {
     @Autowired
     protected MockMvc mvc;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate accountsJdbc;
+
     /** A registered user, logged in to their own new organization. */
     protected record Account(String email, String token, UUID userId, UUID orgId) {}
 
@@ -65,6 +68,9 @@ public abstract class IntegrationTest {
                 """.formatted(email, PASSWORD, organizationName);
         String token = read(perform(post("/api/v1/auth/register"), null, body).andExpect(status().isCreated()), "$.accessToken");
         String me = perform(get("/api/v1/me"), token, null).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        // Most tests aren't about email verification: treat the address as confirmed.
+        // EmailVerificationIntegrationTest goes through the real link instead.
+        accountsJdbc.update("UPDATE users SET email_verified_at = now() WHERE id = ?::uuid", (String) JsonPath.read(me, "$.id"));
         return new Account(
                 email,
                 token,
@@ -91,6 +97,18 @@ public abstract class IntegrationTest {
         return """
                 {"description":"%s","quantity":"%s","unitPrice":"%s","taxRateId":%s}"""
                 .formatted(description, quantity, unitPrice, taxRateId == null ? "null" : "\"" + taxRateId + "\"");
+    }
+
+    /** One credit note line: which invoice line, how many, and optionally a lower unit price. */
+    protected static String creditLine(String invoiceLineId, String quantity, String unitPrice) {
+        return """
+                {"invoiceLineId":"%s","quantity":"%s","unitPrice":%s}"""
+                .formatted(invoiceLineId, quantity, unitPrice == null ? "null" : "\"" + unitPrice + "\"");
+    }
+
+    protected static String creditNote(String reason, String... lines) {
+        return """
+                {"reason":"%s","lines":[%s]}""".formatted(reason, String.join(",", lines));
     }
 
     protected static String document(String clientId, String currency, String... lines) {

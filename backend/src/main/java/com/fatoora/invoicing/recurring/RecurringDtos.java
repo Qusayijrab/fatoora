@@ -53,6 +53,10 @@ public final class RecurringDtos {
             boolean autoIssue,
             boolean autoEmail,
             RecurringTemplate.Status status,
+            int failureCount,
+            String lastError,
+            Instant lastFailedAt,
+            boolean pausedByFailure,
             String notes,
             String terms,
             List<LineResponse> lines,
@@ -65,7 +69,8 @@ public final class RecurringDtos {
             String cur = t.getCurrency();
             return new RecurringResponse(t.getId(), t.getName(), new ClientRef(t.getClient().getId(), t.getClient().getName()),
                     cur, t.getFrequency(), t.getIntervalCount(), t.getStartDate(), t.getEndDate(), t.getNextRunDate(),
-                    t.getRunCount(), t.getPaymentTermsDays(), t.isAutoIssue(), t.isAutoEmail(), t.getStatus(), t.getNotes(),
+                    t.getRunCount(), t.getPaymentTermsDays(), t.isAutoIssue(), t.isAutoEmail(), t.getStatus(),
+                    t.getFailureCount(), t.getLastError(), t.getLastFailedAt(), t.isPausedByFailure(), t.getNotes(),
                     t.getTerms(), t.getLines().stream().map(l -> LineResponse.from(l, cur)).toList(),
                     MoneyDto.from(t.getSubtotal()), MoneyDto.from(t.getTax()), MoneyDto.from(t.getTotal()), t.getLastRunAt());
         }

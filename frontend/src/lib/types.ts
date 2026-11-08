@@ -16,6 +16,8 @@ export type Me = {
   id: string;
   email: string;
   fullName: string;
+  /** Until true, the organization can't email clients (unless another owner confirmed). */
+  emailVerified: boolean;
   organization: Organization | null;
 };
 
@@ -32,6 +34,9 @@ export type TokenResponse = {
   accessToken: string;
   tokenType: string;
   expiresIn: number;
+  /** Traded at /auth/refresh for a new pair (proxy.ts does this). */
+  refreshToken: string | null;
+  refreshExpiresIn: number;
 };
 
 /** What a form's server action returns, for useActionState. */
@@ -194,6 +199,8 @@ export type Invoice = InvoiceSummary & {
   refundDue: Money;
   payments: Payment[];
   creditNotes: { id: string; number: string; total: Money; issueDate: string; reason: string | null }[];
+  /** Per invoice line, what credit notes may still credit. */
+  creditable: { lineId: string; quantity: string; amount: Money }[];
   creditedInvoice: { id: string; number: string } | null;
   quoteId: string | null;
   baseCurrency: string | null;
@@ -274,6 +281,11 @@ export type Recurring = {
   autoIssue: boolean;
   autoEmail: boolean;
   status: "ACTIVE" | "PAUSED" | "ENDED";
+  /** Failed runs in a row; after 3 the schedule pauses itself (pausedByFailure). */
+  failureCount: number;
+  lastError: string | null;
+  lastFailedAt: string | null;
+  pausedByFailure: boolean;
   notes: string | null;
   terms: string | null;
   lines: Line[];
@@ -365,3 +377,6 @@ export type PaymentProblem = {
   detail: string;
   receivedAt: string;
 };
+
+/** One credit note line: an original invoice line, how many units, and optionally a lower unit price. */
+export type CreditLineInput = { invoiceLineId: string; quantity: string; unitPrice: string | null };

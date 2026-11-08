@@ -52,14 +52,16 @@ test("invoice: draft, live totals, issue, part-pay, credit note to paid", async 
   await expect(page.getByText("Sent to accounts@petra.example")).toBeVisible();
 
   await page.getByRole("button", { name: "Record payment" }).click();
-  await page.getByRole("dialog").getByLabel("Amount (JOD)").fill("100");
+  await page.getByRole("dialog").getByLabel("Amount (JOD)").fill("116");
   await page.getByRole("dialog").getByRole("button", { name: "Record payment" }).click();
-  await expect(page.getByTestId("balance-due")).toHaveText("JOD 248.000");
+  await expect(page.getByTestId("balance-due")).toHaveText("JOD 232.000");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("PARTIALLY PAID");
 
+  // Credit notes return lines of the invoice: 8 of the 12 units (8 x 25.000 + 16% = 232.000).
   await page.getByRole("button", { name: "Issue credit note" }).click();
-  await page.getByRole("dialog").getByLabel("Reason (printed on the credit note)").fill("Loyalty discount");
-  await page.getByRole("dialog").getByLabel("Amount to credit (JOD, tax included)").fill("248");
+  await page.getByRole("dialog").getByLabel("Reason (printed on the credit note)").fill("Eight pages dropped");
+  await page.getByRole("dialog").getByLabel("Quantity to credit for line 1").fill("8");
+  await expect(page.getByTestId("credit-total")).toContainText("JOD 232.000");
   await page.getByRole("dialog").getByRole("button", { name: "Issue credit note" }).click();
   await expect(page.getByTestId("balance-due")).toHaveText("JOD 0.000");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("PAID");

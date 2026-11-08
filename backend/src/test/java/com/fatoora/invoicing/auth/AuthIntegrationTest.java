@@ -123,6 +123,31 @@ class AuthIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void passwordGuessingAgainstOneAccountIsSlowedDownWith429() throws Exception {
+        Account account = register("Guessed Co");
+        String wrong = """
+                {"email":"%s","password":"not-the-password"}""".formatted(account.email());
+        for (int i = 0; i < 10; i++) {
+            postJson("/api/v1/auth/login", null, wrong).andExpect(status().isUnauthorized());
+        }
+        // The 11th try within 15 minutes is refused before the password is even checked,
+        // even with the right password, and even from another address.
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/auth/login")
+                        .header("X-Forwarded-For", "198.51.100.9")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}""".formatted(account.email().toUpperCase(), PASSWORD)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+
+        // Other accounts are unaffected.
+        Account other = register("Unaffected Co");
+        postJson("/api/v1/auth/login", null, """
+                {"email":"%s","password":"%s"}""".formatted(other.email(), PASSWORD)).andExpect(status().isOk());
+    }
+
+    @Test
     void protectedEndpointWithoutTokenIs401ProblemJson() throws Exception {
         getJson("/api/v1/me", null)
                 .andExpect(status().isUnauthorized())

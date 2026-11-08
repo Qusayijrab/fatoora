@@ -181,16 +181,18 @@ class InvoiceIntegrationTest extends IntegrationTest {
         postJson("/api/v1/invoices/" + id + "/refunds", owner.token(), """
                 {"amount":"1","method":"BANK_TRANSFER"}""").andExpect(status().isBadRequest());
 
-        postJson("/api/v1/invoices/" + id + "/credit-notes", owner.token(), """
-                {"reason":"Two items returned","lines":[%s]}""".formatted(line("Returned items", "1", "334", null)))
+        String brand = read(getJson("/api/v1/invoices/" + id, owner.token()), "$.lines[0].id");
+        // 287.931 + 16% tax = 334.000 credited on the 850.000 design line.
+        postJson("/api/v1/invoices/" + id + "/credit-notes", owner.token(),
+                creditNote("Price reduced after delivery", creditLine(brand, "1", "287.931")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PAID"))
                 .andExpect(jsonPath("$.balanceDue.amount").value("0.000"))
                 .andExpect(jsonPath("$.refundDue.amount").value("334.000"));
 
-        // Cannot credit more than is left uncredited (1334 - 334).
-        postJson("/api/v1/invoices/" + id + "/credit-notes", owner.token(), """
-                {"reason":"too much","lines":[%s]}""".formatted(line("x", "1", "1000.001", null)))
+        // That line's single unit has been credited: it can't be credited again.
+        postJson("/api/v1/invoices/" + id + "/credit-notes", owner.token(),
+                creditNote("again", creditLine(brand, "1", null)))
                 .andExpect(status().isBadRequest());
 
         Account member = register("Refund member org");
@@ -251,20 +253,66 @@ class InvoiceIntegrationTest extends IntegrationTest {
         String id = draft(a, createClient(a, "C"));
         postJson("/api/v1/invoices/" + id + "/issue", a.token(), null);
 
-        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), """
-                {"reason":"Discount agreed after delivery","lines":[%s]}""".formatted(line("Goodwill discount", "1", "334", null)))
+        String brand = read(getJson("/api/v1/invoices/" + id, a.token()), "$.lines[0].id");
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(),
+                creditNote("Discount agreed after delivery", creditLine(brand, "1", "287.931")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PARTIALLY_PAID"))
                 .andExpect(jsonPath("$.amountCredited.amount").value("334.000"))
                 .andExpect(jsonPath("$.balanceDue.amount").value("1000.000"))
                 .andExpect(jsonPath("$.creditNotes[0].number").value("CN-" + YEAR + "-0001"));
 
-        // A credit larger than what is left to credit is refused.
-        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), """
-                {"reason":"too much","lines":[%s]}""".formatted(line("x", "1", "1000.001", null)))
+        // A credit beyond what was invoiced is refused.
+        String copy = read(getJson("/api/v1/invoices/" + id, a.token()), "$.lines[1].id");
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), creditNote("too much", creditLine(copy, "13", null)))
                 .andExpect(status().isBadRequest());
 
         getJson("/api/v1/invoices?kind=CREDIT_NOTE", a.token()).andExpect(jsonPath("$.total").value(1));
+    }
+
+    @Test
+    void creditNotesOnlyReturnWhatWasInvoicedLineByLine() throws Exception {
+        Account a = register("Returns Co");
+        String id = draft(a, createClient(a, "C"));
+        postJson("/api/v1/invoices/" + id + "/issue", a.token(), null);
+        String copy = read(getJson("/api/v1/invoices/" + id, a.token()), "$.lines[1].id"); // 12 x 25.000, 16% tax
+
+        // Return 5 of 12: the credit line copies description, unit price and tax rate from the original.
+        String cn = read(postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(),
+                        creditNote("Five pages dropped", creditLine(copy, "5", null)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amountCredited.amount").value("145.000"))
+                .andExpect(jsonPath("$.creditable[1].lineId").value(copy))
+                .andExpect(jsonPath("$.creditable[1].quantity").value("7"))
+                .andExpect(jsonPath("$.creditable[1].amount.amount").value("203.000")), "$.creditNotes[0].id");
+        getJson("/api/v1/invoices/" + cn, a.token())
+                .andExpect(jsonPath("$.lines[0].description").value("Bilingual website copy"))
+                .andExpect(jsonPath("$.lines[0].unitPrice.amount").value("25.000"))
+                .andExpect(jsonPath("$.lines[0].taxRate").value("16"))
+                .andExpect(jsonPath("$.total.amount").value("145.000"));
+
+        // Only 7 are left on that line, across all credit notes.
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), creditNote("more", creditLine(copy, "8", null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("only 7")));
+        // Two lines in one request count together too.
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(),
+                        creditNote("split", creditLine(copy, "4", null), creditLine(copy, "4", null)))
+                .andExpect(status().isBadRequest());
+        // Never above the invoiced price, never a line from another invoice.
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), creditNote("price", creditLine(copy, "1", "25.001")))
+                .andExpect(status().isBadRequest());
+        String other = draft(a, createClient(a, "D"));
+        postJson("/api/v1/invoices/" + other + "/issue", a.token(), null);
+        String otherLine = read(getJson("/api/v1/invoices/" + other, a.token()), "$.lines[0].id");
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), creditNote("wrong", creditLine(otherLine, "1", null)))
+                .andExpect(status().isBadRequest());
+
+        // The remaining 7 can still be returned.
+        postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(), creditNote("rest", creditLine(copy, "7", null)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amountCredited.amount").value("348.000"))
+                .andExpect(jsonPath("$.creditable[1].quantity").value("0"));
     }
 
     @Test

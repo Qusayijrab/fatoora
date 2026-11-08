@@ -201,6 +201,17 @@ public class Invoice extends TenantScopedEntity {
         replaceLines(newLines);
     }
 
+    /** Credit notes only: line i credits {@code originalLineIds.get(i)} of the credited invoice. */
+    void linkCreditedLines(List<UUID> originalLineIds) {
+        requireKind(InvoiceKind.CREDIT_NOTE);
+        if (originalLineIds.size() != lines.size()) {
+            throw new IllegalStateException("One original line per credit note line");
+        }
+        for (int i = 0; i < lines.size(); i++) {
+            lines.get(i).creditsLine(originalLineIds.get(i));
+        }
+    }
+
     void linkQuote(UUID quoteId) {
         this.quoteId = quoteId;
     }

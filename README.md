@@ -177,7 +177,8 @@ cp infra/.env.prod.example infra/.env.prod   # fill in real passwords and keys
 docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d --build
 ```
 
-Only the website (port 3000) is public. Put HTTPS in front of it.
+Only the website (port 3000) is public. Put HTTPS in front of it, and have that proxy set
+`X-Real-IP` (Caddy and Nginx can): sign-in and sign-up limits are counted per visitor address.
 
 Set `PAYMENTS_PROVIDER=stripe` with your Stripe keys. The test provider lets anyone with a
 payment link mark an invoice paid, so the server won't start with it unless you also set

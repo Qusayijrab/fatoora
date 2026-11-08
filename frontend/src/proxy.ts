@@ -1,35 +1,73 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { REFRESH_COOKIE, SESSION_COOKIE, cookieOptions, secondsLeft, type TokenPair } from "@/lib/session-cookies";
 
-const SESSION_COOKIE = "fatoora_token";
-const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/portal", "/pay", "/api/v1/webhooks"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/verify-email", "/portal", "/pay", "/api/v1/webhooks"];
+const API_URL = process.env.API_URL ?? "http://localhost:8080";
+
+/** Renew this long before the access token expires, so a page never renders with one about to die. */
+const RENEW_WITHIN_SECONDS = 120;
 
 /**
- * Optimistic redirects only: it looks at the cookie without verifying the signature.
- * The real check is the backend, which verifies the JWT on every API call.
- * This just avoids flashing a protected page before bouncing to /login.
+ * Keeps the session alive and redirects optimistically. It reads the access token's
+ * expiry without verifying the signature (the backend verifies every API call). When
+ * it is missing or about to expire and a refresh token exists, it trades that for a new
+ * pair, sets them on the browser and on the request being handled, so the page that
+ * renders now already uses the new token.
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || (p !== "/" && pathname.startsWith(`${p}/`)));
-  const loggedIn = hasUnexpiredToken(request.cookies.get(SESSION_COOKIE)?.value);
 
+  let renewed: TokenPair | null = null;
+  let refreshFailed = false;
+  const access = request.cookies.get(SESSION_COOKIE)?.value;
+  const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
+  const left = secondsLeft(access);
+  if (refresh && !(left > RENEW_WITHIN_SECONDS)) {
+    const result = await renew(refresh);
+    if (result === "rejected") refreshFailed = true;
+    else if (result !== "unreachable") renewed = result;
+  }
+  const loggedIn = renewed !== null || left > 0;
+
+  let response: NextResponse;
   if (!isPublic && !loggedIn) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    response = NextResponse.redirect(new URL("/login", request.url));
+  } else if ((pathname === "/" || pathname === "/login" || pathname === "/register") && loggedIn) {
+    response = NextResponse.redirect(new URL("/dashboard", request.url));
+  } else if (renewed) {
+    request.cookies.set(SESSION_COOKIE, renewed.accessToken);
+    if (renewed.refreshToken) request.cookies.set(REFRESH_COOKIE, renewed.refreshToken);
+    response = NextResponse.next({ request: { headers: request.headers } });
+  } else {
+    response = NextResponse.next();
   }
-  if ((pathname === "/" || pathname === "/login" || pathname === "/register") && loggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+
+  if (renewed) {
+    response.cookies.set(SESSION_COOKIE, renewed.accessToken, cookieOptions(renewed.expiresIn));
+    if (renewed.refreshToken) {
+      response.cookies.set(REFRESH_COOKIE, renewed.refreshToken, cookieOptions(renewed.refreshExpiresIn ?? 0));
+    }
+  } else if (refreshFailed) {
+    response.cookies.delete(REFRESH_COOKIE);
+    if (!(left > 0)) response.cookies.delete(SESSION_COOKIE);
   }
-  return NextResponse.next();
+  return response;
 }
 
-/** Reads the JWT's "exp" claim (no signature check: that's the backend's job). */
-function hasUnexpiredToken(token: string | undefined): boolean {
-  if (!token) return false;
+/** The new pair; "rejected" if the backend refused the token (log out); "unreachable" to keep things as they are. */
+async function renew(refreshToken: string): Promise<TokenPair | "rejected" | "unreachable"> {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
+    const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ refreshToken }),
+      cache: "no-store",
+    });
+    if (res.ok) return (await res.json()) as TokenPair;
+    return res.status === 401 || res.status === 400 ? "rejected" : "unreachable";
   } catch {
-    return false;
+    return "unreachable";
   }
 }
 
