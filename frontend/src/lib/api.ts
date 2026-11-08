@@ -22,6 +22,8 @@ import type {
   Page,
   PaymentProblem,
   Forecast,
+  AgingReport,
+  TaxReport,
   Product,
   Summary,
   TaxRate,
@@ -195,6 +197,14 @@ export const getRecurringRuns = (id: string) => api<RecurringRun[]>(`/recurring/
 export const getOverview = () => api<Overview>("/dashboard/overview");
 export const getPaymentProblems = () => api<PaymentProblem[]>("/payment-problems");
 export const getForecast = () => api<Forecast>("/dashboard/forecast");
+export const getAgingReport = () => api<AgingReport>("/reports/aging");
+export const getTaxReport = (from?: string, to?: string) => {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const s = q.toString();
+  return api<TaxReport>(`/reports/tax${s ? `?${s}` : ""}`);
+};
 export const getExchangeRates = () => api<ExchangeRate[]>("/exchange-rates");
 export const previewRate = (currency: string) =>
   api<{ currency: string; baseCurrency: string; rate: string | null; source: string | null; date: string }>(

@@ -403,3 +403,29 @@ export type Forecast = {
   clientsWithHistory: number;
   skippedRecurring: number;
 };
+
+export type AgingRow = {
+  clientId: string | null;
+  client: string;
+  notDue: Money;
+  days1to30: Money;
+  days31to60: Money;
+  days61to90: Money;
+  over90: Money;
+  total: Money;
+};
+
+/** What each client owes, by how late it is, in the base currency. */
+export type AgingReport = { baseCurrency: string; asOf: string; rows: AgingRow[]; totals: AgingRow };
+
+/** Taxable amount and tax per rate for a period, net of credit notes, in the base currency. */
+export type TaxReport = {
+  baseCurrency: string;
+  from: string;
+  to: string;
+  rows: { rate: string; name: string; taxable: Money; tax: Money }[];
+  taxable: Money;
+  tax: Money;
+  invoices: number;
+  creditNotes: number;
+};

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChartColumn,
   Building2,
   FileText,
   LayoutDashboard,
@@ -41,6 +42,7 @@ const WORK: NavItem[] = [
   { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/clients", label: "Clients", icon: Contact },
   { href: "/products", label: "Products", icon: Package },
+  { href: "/reports", label: "Reports", icon: ChartColumn },
 ];
 
 const SETTINGS: NavItem[] = [
