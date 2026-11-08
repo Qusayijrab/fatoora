@@ -49,6 +49,13 @@ public class PdfRenderer {
         this.templates.setTemplateResolver(resolver);
     }
 
+    /** Renders templates/pdf/{template}.html with any pre-formatted view as variable "doc". */
+    public byte[] renderObject(String template, Object view) {
+        Context context = new Context();
+        context.setVariable("doc", view);
+        return toPdf(templates.process(template, context));
+    }
+
     /** Renders templates/pdf/{template}.html with the given view as variable "doc". */
     public byte[] render(String template, DocumentView view) {
         Context context = new Context();

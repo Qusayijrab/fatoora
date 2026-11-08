@@ -316,6 +316,28 @@ class InvoiceIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void anInvoiceCanBeDuplicatedAsANewDraftDatedToday() throws Exception {
+        Account a = register("Copy Co");
+        String id = draft(a, createClient(a, "C")); // 850 + 12 x 25, GST 16%
+        postJson("/api/v1/invoices/" + id + "/issue", a.token(), null);
+
+        String copy = read(postJson("/api/v1/invoices/" + id + "/duplicate", a.token(), null)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.number").value(nullValue()))
+                .andExpect(jsonPath("$.issueDate").value(orgToday().toString()))
+                .andExpect(jsonPath("$.dueDate").value(orgToday().plusDays(30).toString()))
+                .andExpect(jsonPath("$.lines", hasSize(2)))
+                .andExpect(jsonPath("$.lines[1].description").value("Bilingual website copy"))
+                .andExpect(jsonPath("$.total.amount").value("1334.000")), "$.id");
+        org.assertj.core.api.Assertions.assertThat(copy).isNotEqualTo(id);
+
+        // Another organization can't copy mine.
+        Account b = register("Copycat Co");
+        postJson("/api/v1/invoices/" + id + "/duplicate", b.token(), null).andExpect(status().isNotFound());
+    }
+
+    @Test
     void anotherOrganizationCannotTouchMyInvoices() throws Exception {
         Account a = register("Private Inv A");
         Account b = register("Private Inv B");

@@ -10,6 +10,7 @@ import { getAudit, getEditorData, getInvoice, getMe } from "@/lib/api";
 import { formatAmount, formatDate, formatMoney } from "@/lib/format";
 import { canManageMembers } from "@/lib/types";
 import { DraftInvoiceEditor } from "./draft-editor";
+import { InvoiceHeaderActions } from "./header-actions";
 import { InvoicePanel } from "./invoice-panel";
 
 export default function InvoicePage({ params }: PageProps<"/invoices/[id]">) {
@@ -37,6 +38,7 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
       <>
         <div className="mt-3">
           <PageHeader
+            actions={<InvoiceHeaderActions invoice={invoice} />}
             title={
               <span className="inline-flex items-center gap-3">
                 Draft invoice <StatusBadge status="DRAFT" />
@@ -61,6 +63,7 @@ async function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
     <>
       <div className="mt-3">
         <PageHeader
+          actions={<InvoiceHeaderActions invoice={invoice} />}
           title={
             <span className="figures inline-flex flex-wrap items-center gap-3 font-mono">
               {invoice.number}

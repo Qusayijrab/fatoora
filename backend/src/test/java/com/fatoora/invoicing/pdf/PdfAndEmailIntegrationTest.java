@@ -58,6 +58,20 @@ class PdfAndEmailIntegrationTest extends IntegrationTest {
                 {"amount":"10","method":"CASH"}""");
         getJson("/api/v1/invoices/" + id + "/pdf", a.token()).andExpect(status().isOk());
         assertThat(((InMemoryDocumentStorage) storage).size()).isEqualTo(before + 2);
+
+        // Paid in full, credited, then refunded: the refund alone must also produce a new PDF.
+        String rest = read(getJson("/api/v1/invoices/" + id, a.token()), "$.balanceDue.amount");
+        postJson("/api/v1/invoices/" + id + "/payments", a.token(), """
+                {"amount":"%s","method":"CASH"}""".formatted(rest)).andExpect(status().isOk());
+        String lineId = read(getJson("/api/v1/invoices/" + id, a.token()), "$.lines[0].id");
+        String owed = read(postJson("/api/v1/invoices/" + id + "/credit-notes", a.token(),
+                creditNote("Goodwill", creditLine(lineId, "1", "1"))).andExpect(status().isOk()), "$.refundDue.amount");
+        getJson("/api/v1/invoices/" + id + "/pdf", a.token()).andExpect(status().isOk());
+        int beforeRefund = ((InMemoryDocumentStorage) storage).size();
+        postJson("/api/v1/invoices/" + id + "/refunds", a.token(), """
+                {"amount":"%s","method":"CASH"}""".formatted(owed)).andExpect(status().isOk());
+        getJson("/api/v1/invoices/" + id + "/pdf", a.token()).andExpect(status().isOk());
+        assertThat(((InMemoryDocumentStorage) storage).size()).isEqualTo(beforeRefund + 1);
     }
 
     @Test

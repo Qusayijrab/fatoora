@@ -57,9 +57,11 @@ public class DocumentPdfService {
         if (invoice.getStatus() == InvoiceStatus.DRAFT) {
             return new PdfFile(prefix + "-draft.pdf", renderer.render("document", DocumentViews.of(invoice, org)));
         }
-        long settled = invoice.getAmountPaid().amountMinor() + invoice.getAmountCredited().amountMinor();
-        String key = "orgs/%s/invoices/%s/%s-%s-%d.pdf".formatted(
-                invoice.getOrganizationId(), invoice.getId(), invoice.getNumber(), invoice.getStatus(), settled);
+        // Every amount the PDF prints is in the key, so a payment, credit note or refund renders a new file.
+        String key = "orgs/%s/invoices/%s/%s-%s-p%d-c%d-r%d.pdf".formatted(
+                invoice.getOrganizationId(), invoice.getId(), invoice.getNumber(), invoice.getStatus(),
+                invoice.getAmountPaid().amountMinor(), invoice.getAmountCredited().amountMinor(),
+                invoice.getAmountRefunded().amountMinor());
         byte[] pdf = storage.get(key).orElseGet(() -> {
             byte[] rendered = renderer.render("document", DocumentViews.of(invoice, org));
             storage.put(key, rendered, "application/pdf");
