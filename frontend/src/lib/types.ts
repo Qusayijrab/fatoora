@@ -209,6 +209,10 @@ export type Invoice = InvoiceSummary & {
   totalBase: Money | null;
   issuedAt: string | null;
   voidedAt: string | null;
+  /** When the client opened it (payment page, its PDF, or the portal). */
+  firstViewedAt: string | null;
+  lastViewedAt: string | null;
+  viewCount: number;
   voidReason: string | null;
   createdAt: string;
 };

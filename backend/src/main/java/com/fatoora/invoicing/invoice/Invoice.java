@@ -148,6 +148,16 @@ public class Invoice extends TenantScopedEntity {
     @Column(name = "voided_at")
     private Instant voidedAt;
 
+    // Written by InvoiceViews with plain SQL; read-only here so saving an invoice never overwrites them.
+    @Column(name = "first_viewed_at", insertable = false, updatable = false)
+    private Instant firstViewedAt;
+
+    @Column(name = "last_viewed_at", insertable = false, updatable = false)
+    private Instant lastViewedAt;
+
+    @Column(name = "view_count", insertable = false, updatable = false)
+    private int viewCount;
+
     @Column(name = "void_reason", columnDefinition = "text")
     private String voidReason;
 
@@ -525,6 +535,18 @@ public class Invoice extends TenantScopedEntity {
 
     public Instant getIssuedAt() {
         return issuedAt;
+    }
+
+    public Instant getFirstViewedAt() {
+        return firstViewedAt;
+    }
+
+    public Instant getLastViewedAt() {
+        return lastViewedAt;
+    }
+
+    public int getViewCount() {
+        return viewCount;
     }
 
     public Instant getVoidedAt() {

@@ -10,6 +10,7 @@ import com.fatoora.invoicing.invoice.InvoiceKind;
 import com.fatoora.invoicing.invoice.InvoiceRepository;
 import com.fatoora.invoicing.invoice.InvoiceService;
 import com.fatoora.invoicing.invoice.InvoiceStatus;
+import com.fatoora.invoicing.invoice.InvoiceViews;
 import com.fatoora.invoicing.mail.DocumentEmailService.PayLinkProvider;
 import com.fatoora.invoicing.organization.Organization;
 import com.fatoora.invoicing.organization.OrganizationService;
@@ -65,6 +66,7 @@ public class PaymentLinkService {
     private final DocumentPdfService pdfs;
     private final TenantRunner runner;
     private final Clock clock;
+    private final InvoiceViews views;
 
     /** Stripe accepts 30 minutes to 24 hours. */
     static final Duration CHECKOUT_LIFETIME = Duration.ofHours(1);
@@ -74,7 +76,8 @@ public class PaymentLinkService {
 
     public PaymentLinkService(PublicLinkService links, InvoiceRepository invoices, InvoiceService invoiceService,
             OrganizationService organizations, CheckoutSessionRepository sessions, PaymentGateway gateway,
-            DocumentPdfService pdfs, TenantRunner runner, Clock clock) {
+            DocumentPdfService pdfs, TenantRunner runner, Clock clock, InvoiceViews views) {
+        this.views = views;
         this.links = links;
         this.invoices = invoices;
         this.invoiceService = invoiceService;
@@ -110,6 +113,7 @@ public class PaymentLinkService {
     public PublicInvoiceView publicView(String token) {
         PublicLink link = links.resolve(token, PublicLink.Kind.INVOICE);
         return runner.inOrganization(link.getOrganizationId(), () -> {
+            views.record(link.getOrganizationId(), link.getTargetId());
             Invoice i = invoiceService.load(link.getTargetId());
             Organization org = organizations.currentEntity();
             String cur = i.getCurrency();
@@ -123,8 +127,10 @@ public class PaymentLinkService {
 
     public PdfFile publicPdf(String token) {
         PublicLink link = links.resolve(token, PublicLink.Kind.INVOICE);
-        return runner.inOrganization(link.getOrganizationId(),
-                () -> pdfs.invoicePdf(invoiceService.load(link.getTargetId()), organizations.currentEntity()));
+        return runner.inOrganization(link.getOrganizationId(), () -> {
+            views.record(link.getOrganizationId(), link.getTargetId());
+            return pdfs.invoicePdf(invoiceService.load(link.getTargetId()), organizations.currentEntity());
+        });
     }
 
     /**

@@ -189,6 +189,28 @@ class PaymentFlowIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void theBusinessSeesWhenTheClientOpenedTheInvoice() throws Exception {
+        Account a = register("Viewed Co");
+        String invoiceId = issued(a);
+        getJson("/api/v1/invoices/" + invoiceId, a.token())
+                .andExpect(jsonPath("$.viewCount").value(0))
+                .andExpect(jsonPath("$.firstViewedAt").doesNotExist());
+
+        String token = payToken(a, invoiceId);
+        getJson("/api/v1/public/pay/" + token, null).andExpect(status().isOk());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                "/api/v1/public/pay/" + token + "/pdf")).andExpect(status().isOk());
+
+        getJson("/api/v1/invoices/" + invoiceId, a.token())
+                .andExpect(jsonPath("$.viewCount").value(2))
+                .andExpect(jsonPath("$.firstViewedAt").isString())
+                .andExpect(jsonPath("$.lastViewedAt").isString());
+        // Only the first view goes into the history.
+        getJson("/api/v1/audit-events?entityId=" + invoiceId, a.token())
+                .andExpect(jsonPath("$.items[?(@.action == 'viewed')]", hasSize(1)));
+    }
+
+    @Test
     void publicLinksRevealNothingWithoutAValidToken() throws Exception {
         Account a = register("Token Co");
         String invoiceId = issued(a);
