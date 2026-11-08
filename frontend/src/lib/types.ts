@@ -384,3 +384,12 @@ export type PaymentProblem = {
 
 /** One credit note line: an original invoice line, how many units, and optionally a lower unit price. */
 export type CreditLineInput = { invoiceLineId: string; quantity: string; unitPrice: string | null };
+
+/** The result of checking (dry run) or importing a CSV file of clients or products. */
+export type ImportReport = {
+  imported: boolean;
+  ok: number;
+  skipped: number;
+  errors: number;
+  rows: { line: number; name: string; status: "OK" | "SKIP" | "ERROR"; messages: string[] }[];
+};

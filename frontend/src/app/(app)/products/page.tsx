@@ -1,4 +1,4 @@
-import { Package, Plus } from "lucide-react";
+import { FileUp, Package, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
@@ -22,11 +22,18 @@ export default function ProductsPage({ searchParams }: PageProps<"/products">) {
         title="Products"
         description="What you sell, priced once. Lines on quotes and invoices copy the price, so changing it later never touches a sent document."
         actions={
-          <Button asChild>
-            <Link href="/products/new">
-              <Plus /> New product
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/products/import">
+                <FileUp /> Import CSV
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/products/new">
+                <Plus /> New product
+              </Link>
+            </Button>
+          </>
         }
       />
       <Suspense fallback={<Skeleton className="h-72 w-full" />}>

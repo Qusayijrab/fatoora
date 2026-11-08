@@ -42,6 +42,8 @@ export class ApiError extends Error {
 type Options = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  /** Sent as-is instead of JSON (e.g. a CSV file), with this content type. */
+  text?: { body: string; contentType: string };
   /** Send the session token? Off for login/register. */
   auth?: boolean;
 };
@@ -70,9 +72,10 @@ async function visitorIp(): Promise<string | null> {
   }
 }
 
-export async function api<T>(path: string, { method = "GET", body, auth = true }: Options = {}): Promise<T> {
+export async function api<T>(path: string, { method = "GET", body, text, auth = true }: Options = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (text) headers["Content-Type"] = text.contentType;
   const ip = await visitorIp();
   if (ip) headers["X-Forwarded-For"] = ip;
   if (auth) {
@@ -84,7 +87,7 @@ export async function api<T>(path: string, { method = "GET", body, auth = true }
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: text ? text.body : body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
 
