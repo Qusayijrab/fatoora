@@ -7,6 +7,8 @@ import com.fatoora.invoicing.common.ratelimit.RateLimiter;
 import com.fatoora.invoicing.common.ratelimit.RateLimits;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -24,8 +26,11 @@ public class AuthController {
     private final AuthService authService;
     private final RateLimiter limiter;
     private final RateLimits limits;
+    private final EmailVerificationService verification;
 
-    public AuthController(AuthService authService, RateLimiter limiter, RateLimits limits) {
+    public AuthController(AuthService authService, RateLimiter limiter, RateLimits limits,
+            EmailVerificationService verification) {
+        this.verification = verification;
         this.authService = authService;
         this.limiter = limiter;
         this.limits = limits;
@@ -48,6 +53,17 @@ public class AuthController {
                 Duration.ofMinutes(15), "Too many sign-in attempts for this account. Wait a few minutes and try again.");
         return authService.login(request);
     }
+
+    /** The link from the confirmation email (public: the token is the permission). */
+    @PostMapping("/verify-email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void verifyEmail(@Valid @RequestBody VerifyEmailRequest request, HttpServletRequest http) {
+        limiter.hit("verify-ip", RateLimits.clientIp(http), 30, Duration.ofMinutes(10),
+                "Too many attempts. Wait a few minutes and try again.");
+        verification.verify(request.token());
+    }
+
+    public record VerifyEmailRequest(@NotBlank @Size(max = 100) String token) {}
 
     @PostMapping("/switch-org/{organizationId}")
     public TokenResponse switchOrganization(@PathVariable UUID organizationId) {

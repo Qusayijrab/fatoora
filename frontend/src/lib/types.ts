@@ -16,6 +16,8 @@ export type Me = {
   id: string;
   email: string;
   fullName: string;
+  /** Until true, the organization can't email clients (unless another owner confirmed). */
+  emailVerified: boolean;
   organization: Organization | null;
 };
 

@@ -47,3 +47,13 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   }
   redirect("/dashboard");
 }
+
+/** The button on /verify-email/[token]: confirms the address (a POST, so link scanners can't use the token up). */
+export async function verifyEmail(token: string): Promise<FormState> {
+  try {
+    await api("/auth/verify-email", { method: "POST", body: { token }, auth: false });
+  } catch (e) {
+    return toFormState(e);
+  }
+  return { ok: true };
+}

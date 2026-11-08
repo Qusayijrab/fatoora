@@ -156,4 +156,27 @@ await t("POST", "/recurring", {
   lines: [line(social)],
 });
 
+// New accounts confirm their email before they can email clients. Locally the
+// confirmation email lands in Mailpit, so confirm it from there when we can.
+const MAILPIT = process.env.MAILPIT_URL ?? "http://localhost:8025";
+let confirmed = false;
+try {
+  for (let i = 0; i < 10 && !confirmed; i++) {
+    const search = await (await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`)).json();
+    const id = search.messages?.[0]?.ID;
+    if (id) {
+      const message = await (await fetch(`${MAILPIT}/api/v1/message/${id}`)).json();
+      const verifyToken = /\/verify-email\/([A-Za-z0-9_-]{43})/.exec(message.HTML)?.[1];
+      if (verifyToken) {
+        await call("POST", "/auth/verify-email", { token: verifyToken });
+        confirmed = true;
+      }
+    }
+    if (!confirmed) await new Promise((r) => setTimeout(r, 500));
+  }
+} catch {
+  // Mailpit not reachable (e.g. a deployed demo): confirm by hand from the email.
+}
+
 console.log(`\nDemo ready: Nabati Design Studio\n  email:    ${email}\n  password: ${password}\n`);
+if (!confirmed) console.log("  (Confirm the email address from the link we sent before emailing clients.)\n");

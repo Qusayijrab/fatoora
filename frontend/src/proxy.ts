@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "fatoora_token";
-const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/portal", "/pay", "/api/v1/webhooks"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/verify-email", "/portal", "/pay", "/api/v1/webhooks"];
 
 /**
  * Optimistic redirects only: it looks at the cookie without verifying the signature.

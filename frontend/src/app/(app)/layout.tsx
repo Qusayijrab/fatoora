@@ -4,6 +4,7 @@ import { LogoMark } from "@/components/brand";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { SidebarOrgSlot, SidebarSlotSkeleton, SidebarUserSlot } from "./sidebar-slots";
+import { VerifyEmailBanner } from "./verify-email-banner";
 
 /**
  * The app frame. The sidebar and nav are static and render instantly; the org
@@ -45,7 +46,12 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <div className="hidden px-4 pt-3 md:block">
           <SidebarTrigger className="text-muted-foreground" />
         </div>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-4 sm:px-8 md:pt-2">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-4 sm:px-8 md:pt-2">
+          <Suspense fallback={null}>
+            <VerifyEmailBanner />
+          </Suspense>
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

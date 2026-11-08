@@ -29,13 +29,16 @@ public class AuthService {
      * "wrong password" take the same time and can't be told apart.
      */
     private final String dummyHash;
+    private final EmailVerificationService verification;
 
     public AuthService(
             UserRepository users,
             MembershipRepository memberships,
             OrganizationService organizations,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            EmailVerificationService verification) {
+        this.verification = verification;
         this.users = users;
         this.memberships = memberships;
         this.organizations = organizations;
@@ -51,9 +54,11 @@ public class AuthService {
         if (users.existsByEmail(email)) {
             throw ApiException.conflict("An account with this email already exists");
         }
-        User user = users.save(new User(email, passwordEncoder.encode(request.password()), request.fullName()));
+        // Flushed now: the verification token below is written with plain SQL and references this row.
+        User user = users.saveAndFlush(new User(email, passwordEncoder.encode(request.password()), request.fullName()));
         Membership owner = organizations.createWithOwner(
                 user, request.organizationName(), request.defaultCurrency(), request.timeZone());
+        verification.sendLink(user);
         return jwtService.issue(user.getId(), owner.getOrganization().getId());
     }
 

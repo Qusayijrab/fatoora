@@ -4,6 +4,7 @@ import com.fatoora.invoicing.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.Locale;
 
 /** A person who can log in. Users are global; they join organizations via memberships. */
@@ -19,6 +20,9 @@ public class User extends BaseEntity {
 
     @Column(name = "full_name", nullable = false, length = 200)
     private String fullName;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
 
     protected User() {}
 
@@ -46,5 +50,15 @@ public class User extends BaseEntity {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
+
+    void markEmailVerified(Instant now) {
+        if (emailVerifiedAt == null) {
+            emailVerifiedAt = now;
+        }
     }
 }

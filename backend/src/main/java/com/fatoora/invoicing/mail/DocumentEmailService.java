@@ -58,10 +58,13 @@ public class DocumentEmailService {
 
     private final RateLimiter limiter;
     private final RateLimits limits;
+    private final ClientEmailPolicy clientEmails;
 
     public DocumentEmailService(InvoiceRepository invoices, QuoteRepository quotes, OrganizationService organizations,
             DocumentPdfService pdfs, MailService mail, AuditService audit, TransactionTemplate tx,
-            java.util.Optional<PayLinkProvider> payLinks, RateLimiter limiter, RateLimits limits) {
+            java.util.Optional<PayLinkProvider> payLinks, RateLimiter limiter, RateLimits limits,
+            ClientEmailPolicy clientEmails) {
+        this.clientEmails = clientEmails;
         this.limiter = limiter;
         this.limits = limits;
         this.invoices = invoices;
@@ -77,11 +80,13 @@ public class DocumentEmailService {
     }
 
     /**
-     * Anyone who signs up can email any address from our sender address, so emails a
-     * person sends are capped per organization. Scheduled sends (recurring invoices,
+     * The organization must have a confirmed owner ({@link ClientEmailPolicy}). Anyone
+     * who signs up can email any address from our sender address, so emails a
+     * person sends are also capped per organization. Scheduled sends (recurring invoices,
      * reminders) run as the system, with no user, and are not counted.
      */
     private void limitPeopleSending(CurrentTenant tenant) {
+        clientEmails.requireCanEmailClients(tenant.organizationId());
         if (tenant.userId() != null) {
             limiter.hit("email-org", RateLimits.orgKey(tenant.organizationId()), limits.emailsPerOrganizationPerHour(),
                     Duration.ofHours(1), "This organization has sent too many emails in the last hour. Try again later.");

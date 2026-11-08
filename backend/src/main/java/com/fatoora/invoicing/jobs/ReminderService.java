@@ -4,6 +4,7 @@ import com.fatoora.invoicing.audit.AuditService;
 import com.fatoora.invoicing.common.tenancy.TenantRunner;
 import com.fatoora.invoicing.invoice.Invoice;
 import com.fatoora.invoicing.invoice.InvoiceService;
+import com.fatoora.invoicing.mail.ClientEmailPolicy;
 import com.fatoora.invoicing.mail.MailService;
 import com.fatoora.invoicing.mail.MailService.Attachment;
 import com.fatoora.invoicing.mail.MailService.OutgoingMail;
@@ -44,11 +45,14 @@ public class ReminderService {
     private final DocumentPdfService pdfs;
     private final PaymentLinkService payLinks;
     private final MailService mail;
+    private final ClientEmailPolicy clientEmails;
     private final AuditService audit;
     private final JdbcTemplate jdbc;
 
     public ReminderService(TenantRunner runner, InvoiceService invoices, OrganizationService organizations,
-            DocumentPdfService pdfs, PaymentLinkService payLinks, MailService mail, AuditService audit, JdbcTemplate jdbc) {
+            DocumentPdfService pdfs, PaymentLinkService payLinks, MailService mail, AuditService audit, JdbcTemplate jdbc,
+            ClientEmailPolicy clientEmails) {
+        this.clientEmails = clientEmails;
         this.runner = runner;
         this.invoices = invoices;
         this.organizations = organizations;
@@ -60,6 +64,9 @@ public class ReminderService {
     }
 
     public boolean send(Due due, Instant now) {
+        if (!clientEmails.canEmailClients(due.organizationId())) {
+            return false; // nothing claimed: it goes out on a later run once an owner confirms their email
+        }
         UUID claimId = UuidVersion7Strategy.INSTANCE.generateUuid(null);
         OutgoingMail outgoing = runner.inOrganization(due.organizationId(), () -> {
             Invoice invoice = invoices.loadForUpdate(due.invoiceId());
