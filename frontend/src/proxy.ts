@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { REFRESH_COOKIE, SESSION_COOKIE, cookieOptions, secondsLeft, type TokenPair } from "@/lib/session-cookies";
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/verify-email", "/portal", "/pay", "/api/v1/webhooks"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/session-expired", "/verify-email", "/forgot-password", "/reset-password", "/portal", "/pay", "/api/v1/webhooks"];
 const API_URL = process.env.API_URL ?? "http://localhost:8080";
 
 /** Renew this long before the access token expires, so a page never renders with one about to die. */

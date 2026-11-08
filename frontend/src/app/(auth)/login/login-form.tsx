@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useId } from "react";
 import { FormError } from "@/components/form-error";
 import { FormField } from "@/components/form-field";
@@ -21,6 +22,9 @@ export function LoginForm() {
       <FormField id={`password-${uid}`} label="Password" error={state.fieldErrors?.password}>
         <Input id={`password-${uid}`} name="password" type="password" autoComplete="current-password" required className="h-10" />
       </FormField>
+      <Link href="/forgot-password" className="-mt-3 justify-self-end text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+        Forgot password?
+      </Link>
       <Button type="submit" size="lg" className="h-10" disabled={pending}>
         {pending ? "Logging in…" : "Log in"}
       </Button>
