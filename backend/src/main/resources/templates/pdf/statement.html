@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Statement of account (كشف حساب). Same look and rules as document.html: strict XHTML,
+  tables for layout, bilingual labels, every value pre-formatted (no math here).
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${'Statement ' + doc.client.name}">Statement</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 20mm 16mm;
+      @bottom-left { content: "Fatoora"; font-family: Tajawal; font-size: 7.5pt; color: #a1a1aa; }
+      @bottom-right { content: "Page " counter(page) " / " counter(pages); font-family: Tajawal; font-size: 7.5pt; color: #a1a1aa; }
+    }
+    * { box-sizing: border-box; }
+    body { font-family: Tajawal; font-size: 9.5pt; color: #18181b; margin: 0; line-height: 1.45; }
+    .bar { height: 5pt; background: #4338ca; margin-bottom: 18pt; }
+    .bar-accent { height: 5pt; width: 64pt; background: #a5b4fc; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { vertical-align: top; padding: 0; }
+    .muted { color: #71717a; }
+    .label { font-size: 7.5pt; letter-spacing: 1pt; text-transform: uppercase; color: #71717a; font-weight: 500; }
+    .ar { font-size: 8pt; color: #71717a; letter-spacing: 0; text-transform: none; }
+    .name { font-weight: 700; font-size: 11pt; }
+    .title { font-size: 20pt; font-weight: 700; color: #4338ca; line-height: 1; }
+    .title-ar { font-size: 13pt; color: #4338ca; }
+    .meta td { padding: 1.5pt 0 1.5pt 10pt; text-align: right; }
+    .lines { margin-top: 20pt; }
+    .lines th { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .8pt; color: #71717a; font-weight: 500;
+      padding: 6pt 5pt; border-bottom: 1pt solid #4338ca; text-align: right; }
+    .lines th.l, .lines td.l { text-align: left; }
+    .lines th.first, .lines td.first { padding-left: 0; }
+    .lines td { padding: 6pt 5pt; border-bottom: .5pt solid #e4e4e7; text-align: right; }
+    .lines .ar { display: block; font-size: 7pt; letter-spacing: 0; text-transform: none; }
+    .lines tr.opening td { color: #71717a; font-style: italic; }
+    .lines tr.sum td { font-weight: 700; border-top: 1pt solid #4338ca; border-bottom: none; }
+    .closing { margin-top: 14pt; width: 62%; margin-left: 38%; }
+    .closing td { padding: 6pt 0; font-weight: 700; font-size: 12pt; border-top: 1pt solid #4338ca; white-space: nowrap; }
+    .closing td.v { text-align: right; }
+    .note { margin-top: 18pt; font-size: 8.5pt; }
+  </style>
+</head>
+<body>
+  <div class="bar"><div class="bar-accent"></div></div>
+
+  <table>
+    <tr>
+      <td style="width: 55%;">
+        <div class="name" th:text="${doc.seller.name}">Seller</div>
+        <div class="muted" th:each="l : ${doc.seller.lines}" th:text="${l}">line</div>
+      </td>
+      <td style="text-align: right;">
+        <div class="title">Statement of account</div>
+        <div class="title-ar">كشف حساب</div>
+        <table class="meta" style="width: auto; margin-left: auto; margin-top: 6pt;">
+          <tr>
+            <td class="muted">From <span class="ar">من</span></td>
+            <td th:text="${doc.from}">1 Jan 2026</td>
+          </tr>
+          <tr>
+            <td class="muted">To <span class="ar">إلى</span></td>
+            <td th:text="${doc.to}">8 Nov 2026</td>
+          </tr>
+          <tr>
+            <td class="muted">Currency <span class="ar">العملة</span></td>
+            <td th:text="${doc.currency}">JOD</td>
+          </tr>
+          <tr>
+            <td class="muted">Printed <span class="ar">تاريخ الطباعة</span></td>
+            <td th:text="${doc.printed}">8 Nov 2026</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top: 22pt;">
+    <div class="label">Client <span class="ar">العميل</span></div>
+    <div class="name" style="margin-top: 3pt;" th:text="${doc.client.name}">Client</div>
+    <div class="muted" th:each="l : ${doc.client.lines}" th:text="${l}">line</div>
+  </div>
+
+  <table class="lines">
+    <thead>
+      <tr>
+        <th class="l first" style="width: 13%;">Date <span class="ar">التاريخ</span></th>
+        <th class="l" style="width: 17%;">Document <span class="ar">المستند</span></th>
+        <th class="l">Details <span class="ar">البيان</span></th>
+        <th style="width: 13%;">Debit <span class="ar">مدين</span></th>
+        <th style="width: 13%;">Credit <span class="ar">دائن</span></th>
+        <th style="width: 14%;">Balance <span class="ar">الرصيد</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="opening">
+        <td class="l first" th:text="${doc.from}">1 Jan 2026</td>
+        <td class="l" colspan="2">Balance brought forward <span class="ar">رصيد سابق</span></td>
+        <td></td>
+        <td></td>
+        <td th:text="${doc.opening}">0.000</td>
+      </tr>
+      <tr th:each="r : ${doc.rows}">
+        <td class="l first" th:text="${r.date}">3 Feb 2026</td>
+        <td class="l" th:text="${r.document}">INV-2026-0001</td>
+        <td class="l" th:text="${r.details}">Invoice</td>
+        <td th:text="${r.debit}">100.000</td>
+        <td th:text="${r.credit}"></td>
+        <td th:text="${r.balance}">100.000</td>
+      </tr>
+      <tr class="sum">
+        <td class="l first" colspan="3">Totals for the period <span class="ar">مجموع الفترة</span></td>
+        <td th:text="${doc.debits}">0.000</td>
+        <td th:text="${doc.credits}">0.000</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="closing">
+    <tr>
+      <td>
+        <span th:text="${doc.closingInClientsFavour ? 'We owe you' : 'Balance due'}">Balance due</span>
+        <span class="ar" th:text="${doc.closingInClientsFavour ? 'رصيد لصالحكم' : 'الرصيد المستحق'}">الرصيد المستحق</span>
+      </td>
+      <td class="v" th:text="${doc.closing}">JOD 0.000</td>
+    </tr>
+  </table>
+
+  <p class="note muted" th:if="${!doc.otherCurrencies.isEmpty()}"
+     th:text="${'This statement covers ' + doc.currency + ' only. There are also documents in ' + #strings.listJoin(doc.otherCurrencies, ', ') + ', each on its own statement.'}">
+    Other currencies note
+  </p>
+  <p class="note muted">Amounts in brackets are in your favour. Please tell us about any difference within 14 days.</p>
+</body>
+</html>
