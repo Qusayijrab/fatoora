@@ -21,6 +21,7 @@ import type {
   Overview,
   Page,
   PaymentProblem,
+  Forecast,
   Product,
   Summary,
   TaxRate,
@@ -193,6 +194,7 @@ export const getRecurring = (id: string) => api<Recurring>(`/recurring/${encodeU
 export const getRecurringRuns = (id: string) => api<RecurringRun[]>(`/recurring/${encodeURIComponent(id)}/runs`);
 export const getOverview = () => api<Overview>("/dashboard/overview");
 export const getPaymentProblems = () => api<PaymentProblem[]>("/payment-problems");
+export const getForecast = () => api<Forecast>("/dashboard/forecast");
 export const getExchangeRates = () => api<ExchangeRate[]>("/exchange-rates");
 export const previewRate = (currency: string) =>
   api<{ currency: string; baseCurrency: string; rate: string | null; source: string | null; date: string }>(

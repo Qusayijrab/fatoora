@@ -11,10 +11,18 @@ public class DashboardController {
 
     private final DashboardService service;
     private final OverviewService overview;
+    private final ForecastService forecast;
 
-    public DashboardController(DashboardService service, OverviewService overview) {
+    public DashboardController(DashboardService service, OverviewService overview, ForecastService forecast) {
         this.service = service;
         this.overview = overview;
+        this.forecast = forecast;
+    }
+
+    /** Money expected in over the next 12 weeks, per week, in the base currency. */
+    @GetMapping("/forecast")
+    public ForecastService.Forecast forecast() {
+        return forecast.forecast();
     }
 
     /** Money totals, 12-month series, aging, top balances and recent activity, in the base currency. */

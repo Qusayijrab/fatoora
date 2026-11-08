@@ -393,3 +393,13 @@ export type ImportReport = {
   errors: number;
   rows: { line: number; name: string; status: "OK" | "SKIP" | "ERROR"; messages: string[] }[];
 };
+
+/** Money expected in over the next 12 weeks, per week, in the base currency. */
+export type Forecast = {
+  baseCurrency: string;
+  weeks: { start: string; invoiced: Money; recurring: Money }[];
+  total: Money;
+  alreadyLate: Money;
+  clientsWithHistory: number;
+  skippedRecurring: number;
+};
