@@ -30,6 +30,7 @@ public class AuthService {
      */
     private final String dummyHash;
     private final EmailVerificationService verification;
+    private final RefreshTokenService refreshTokens;
 
     public AuthService(
             UserRepository users,
@@ -37,8 +38,10 @@ public class AuthService {
             OrganizationService organizations,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            EmailVerificationService verification) {
+            EmailVerificationService verification,
+            RefreshTokenService refreshTokens) {
         this.verification = verification;
+        this.refreshTokens = refreshTokens;
         this.users = users;
         this.memberships = memberships;
         this.organizations = organizations;
@@ -59,11 +62,12 @@ public class AuthService {
         Membership owner = organizations.createWithOwner(
                 user, request.organizationName(), request.defaultCurrency(), request.timeZone());
         verification.sendLink(user);
-        return jwtService.issue(user.getId(), owner.getOrganization().getId());
+        memberships.flush(); // the refresh token row (plain SQL) references the new organization
+        return session(user.getId(), owner.getOrganization().getId());
     }
 
     /** Logs in to the user's oldest organization; use switch-org to change. */
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse login(LoginRequest request) {
         User user = users.findByEmail(User.normalizeEmail(request.email())).orElse(null);
         if (user == null) {
@@ -75,18 +79,34 @@ public class AuthService {
         }
         List<Membership> mine = memberships.findAllForUser(user.getId());
         UUID defaultOrg = mine.isEmpty() ? null : mine.getFirst().getOrganization().getId();
-        return jwtService.issue(user.getId(), defaultOrg);
+        return session(user.getId(), defaultOrg);
     }
 
     /**
      * New token for another org. Same 403 whether the org doesn't exist or the user
      * isn't a member, so this can't be used to probe for other orgs.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse switchOrganization(UUID userId, UUID organizationId) {
         if (!memberships.existsInOrganization(organizationId, userId)) {
             throw ApiException.forbidden("You are not a member of this organization");
         }
-        return jwtService.issue(userId, organizationId);
+        return session(userId, organizationId);
+    }
+
+    /**
+     * Trades a refresh token for a new access token and refresh token (rotation). Not
+     * transactional itself: rotate() commits its revocations even when it answers 401.
+     */
+    public TokenResponse refresh(String refreshToken) {
+        var next = refreshTokens.rotate(refreshToken);
+        return jwtService.issue(next.userId(), next.organizationId())
+                .withRefreshToken(next.refreshToken(), RefreshTokenService.LIFETIME.toSeconds());
+    }
+
+    /** An access token plus a new refresh-token family. */
+    private TokenResponse session(UUID userId, UUID organizationId) {
+        return jwtService.issue(userId, organizationId)
+                .withRefreshToken(refreshTokens.start(userId, organizationId), RefreshTokenService.LIFETIME.toSeconds());
     }
 }

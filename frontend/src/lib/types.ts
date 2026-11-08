@@ -34,6 +34,9 @@ export type TokenResponse = {
   accessToken: string;
   tokenType: string;
   expiresIn: number;
+  /** Traded at /auth/refresh for a new pair (proxy.ts does this). */
+  refreshToken: string | null;
+  refreshExpiresIn: number;
 };
 
 /** What a form's server action returns, for useActionState. */

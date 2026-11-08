@@ -27,10 +27,12 @@ public class AuthController {
     private final RateLimiter limiter;
     private final RateLimits limits;
     private final EmailVerificationService verification;
+    private final RefreshTokenService refreshTokens;
 
     public AuthController(AuthService authService, RateLimiter limiter, RateLimits limits,
-            EmailVerificationService verification) {
+            EmailVerificationService verification, RefreshTokenService refreshTokens) {
         this.verification = verification;
+        this.refreshTokens = refreshTokens;
         this.authService = authService;
         this.limiter = limiter;
         this.limits = limits;
@@ -64,6 +66,21 @@ public class AuthController {
     }
 
     public record VerifyEmailRequest(@NotBlank @Size(max = 100) String token) {}
+
+    public record RefreshRequest(@NotBlank @Size(max = 100) String refreshToken) {}
+
+    /** A new access token and refresh token for a refresh token (public: the token is the permission). */
+    @PostMapping("/refresh")
+    public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.refreshToken());
+    }
+
+    /** Ends this device's session: its refresh token chain stops working. */
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody RefreshRequest request) {
+        refreshTokens.revoke(request.refreshToken());
+    }
 
     @PostMapping("/switch-org/{organizationId}")
     public TokenResponse switchOrganization(@PathVariable UUID organizationId) {
