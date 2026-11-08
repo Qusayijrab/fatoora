@@ -44,6 +44,27 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           }
         />
       </div>
+      {recurring.lastError && (
+        <div
+          role="alert"
+          data-testid="recurring-failure"
+          className="mb-6 rounded-xl border border-ink-overdue/40 bg-ink-overdue/5 p-4 text-sm"
+        >
+          <p className="font-medium">
+            {recurring.pausedByFailure
+              ? "Paused: the last invoice could not be created"
+              : `The last run failed (${recurring.failureCount} of 3 before it pauses)`}
+          </p>
+          <p className="mt-1 text-muted-foreground" dir="auto">
+            {recurring.lastError}
+          </p>
+          {recurring.pausedByFailure && (
+            <p className="mt-1 text-muted-foreground">
+              Fix the cause, then press Resume. The missed period is tried again; nothing is skipped.
+            </p>
+          )}
+        </div>
+      )}
       <div className="grid items-start gap-6 min-[90rem]:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="rounded-xl border bg-card shadow-xs p-5 sm:p-7">
           {recurring.status === "ENDED" ? (

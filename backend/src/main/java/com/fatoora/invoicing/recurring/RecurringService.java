@@ -33,6 +33,9 @@ public class RecurringService {
     /** What one generation step produced (for the job: whether an email should follow). */
     public record Generated(UUID invoiceId, boolean issued, boolean email) {}
 
+    /** A failed run as recorded: whether it paused the template, and what to tell the owners. */
+    public record Failure(boolean paused, String name, String error) {}
+
     private final RecurringTemplateRepository templates;
     private final ClientService clients;
     private final OrganizationService organizations;
@@ -98,7 +101,7 @@ public class RecurringService {
     public RecurringResponse pause(UUID id) {
         TenantContext.require();
         RecurringTemplate t = lock(id);
-        t.pause();
+        t.pause(clock.instant());
         audit.record("recurring", t.getId(), "paused", "Recurring invoice \"" + t.getName() + "\" paused", Map.of());
         return RecurringResponse.from(t);
     }
@@ -132,6 +135,25 @@ public class RecurringService {
                 ORDER BY r.period_date DESC
                 """, (rs, n) -> new RunResponse(rs.getObject(1, LocalDate.class), rs.getObject(2, UUID.class), rs.getString(3),
                 rs.getString(4), rs.getTimestamp(5).toInstant()), id, orgId);
+    }
+
+    /**
+     * Counts a failed scheduled run (its own transaction: the run itself was rolled back).
+     * After {@link RecurringTemplate#MAX_FAILURES} in a row the template pauses itself.
+     */
+    @Transactional
+    public Failure recordFailure(UUID templateId, String error, Instant now) {
+        RecurringTemplate t = lock(templateId);
+        String reason = error == null || error.isBlank() ? "Unexpected error" : error;
+        boolean paused = t.recordFailure(reason, now);
+        CurrentTenant tenant = TenantContext.require();
+        if (paused) {
+            audit.record(tenant.organizationId(), null, "recurring", t.getId(), "paused_after_failures",
+                    "Recurring invoice \"" + t.getName() + "\" paused after " + RecurringTemplate.MAX_FAILURES
+                            + " failed runs: " + reason,
+                    Map.of("error", reason));
+        }
+        return new Failure(paused, t.getName(), reason);
     }
 
     // ---- generation (called by the job, and by "Generate now") ----

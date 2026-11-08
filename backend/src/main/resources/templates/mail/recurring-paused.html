@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- Sent to an organization's owners when a recurring invoice pauses itself after repeated failures. -->
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+  <title th:text="${'Recurring invoice ' + name + ' paused'}">Recurring invoice paused</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f7;font-family:Segoe UI,Tahoma,Arial,sans-serif;color:#18181b;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
+      <tr><td style="background:#4338ca;padding:18px 28px;">
+        <span style="color:#ffffff;font-size:16px;font-weight:600;" th:text="${orgName}">Organization</span>
+      </td></tr>
+      <tr><td style="height:4px;background:#a5b4fc;line-height:4px;font-size:0;">&nbsp;</td></tr>
+      <tr><td style="padding:28px;">
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.55;">
+          The recurring invoice <strong th:text="${name}">Monthly retainer</strong> could not create its invoice
+          <span th:text="${failures}">3</span> times in a row, so it has been paused. No invoice was sent to the client.
+        </p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e4e4e7;border-bottom:1px solid #e4e4e7;margin:0 0 22px;">
+          <tr>
+            <td style="padding:12px 0;font-size:14px;color:#71717a;width:90px;vertical-align:top;">Reason</td>
+            <td style="padding:12px 0;font-size:14px;line-height:1.5;" th:text="${error}">No exchange rate from EUR to JOD.</td>
+          </tr>
+        </table>
+        <p style="margin:0 0 24px;">
+          <a th:href="${publicUrl + '/recurring/' + templateId}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:8px;font-size:15px;">Fix and resume</a>
+        </p>
+        <p style="margin:0;font-size:13px;color:#71717a;line-height:1.5;">
+          Fix the reason above, then press Resume. The missed period is tried again; nothing is skipped.
+        </p>
+        <p dir="rtl" style="margin:18px 0 0;font-size:13px;color:#71717a;line-height:1.6;text-align:right;">
+          تم إيقاف هذه الفاتورة الدورية مؤقتاً بعد تعذّر إنشائها عدة مرات. يرجى معالجة السبب ثم استئنافها.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

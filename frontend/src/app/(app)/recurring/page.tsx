@@ -80,6 +80,11 @@ async function RecurringList() {
               <TableCell className="figures text-end whitespace-nowrap">{formatMoney(r.total)}</TableCell>
               <TableCell className="pe-5 text-end">
                 <StatusBadge status={r.status} />
+                {r.pausedByFailure && (
+                  <span className="mt-1 block text-xs text-ink-overdue" title={r.lastError ?? undefined}>
+                    Failed {r.failureCount}×
+                  </span>
+                )}
               </TableCell>
             </TableRow>
           ))}

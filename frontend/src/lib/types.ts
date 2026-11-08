@@ -276,6 +276,11 @@ export type Recurring = {
   autoIssue: boolean;
   autoEmail: boolean;
   status: "ACTIVE" | "PAUSED" | "ENDED";
+  /** Failed runs in a row; after 3 the schedule pauses itself (pausedByFailure). */
+  failureCount: number;
+  lastError: string | null;
+  lastFailedAt: string | null;
+  pausedByFailure: boolean;
   notes: string | null;
   terms: string | null;
   lines: Line[];

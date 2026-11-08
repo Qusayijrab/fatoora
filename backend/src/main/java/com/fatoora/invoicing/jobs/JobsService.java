@@ -8,9 +8,11 @@ import com.fatoora.invoicing.invoice.Invoice;
 import com.fatoora.invoicing.invoice.InvoiceRepository;
 import com.fatoora.invoicing.mail.DocumentEmailService;
 import com.fatoora.invoicing.mail.DocumentEmailService.EmailRequest;
+import com.fatoora.invoicing.mail.MailService;
 import com.fatoora.invoicing.quote.QuoteRepository;
 import com.fatoora.invoicing.recurring.RecurringService;
 import com.fatoora.invoicing.recurring.RecurringService.Generated;
+import com.fatoora.invoicing.recurring.RecurringTemplate;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -47,10 +49,12 @@ public class JobsService {
     private final DocumentEmailService emails;
     private final ReminderService reminders;
     private final AuditService audit;
+    private final MailService mail;
     private final Clock clock;
 
     public JobsService(JdbcTemplate jdbc, TenantRunner runner, RecurringService recurring, InvoiceRepository invoices,
-            QuoteRepository quotes, DocumentEmailService emails, ReminderService reminders, AuditService audit, Clock clock) {
+            QuoteRepository quotes, DocumentEmailService emails, ReminderService reminders, AuditService audit,
+            MailService mail, Clock clock) {
         this.jdbc = jdbc;
         this.runner = runner;
         this.recurring = recurring;
@@ -59,6 +63,7 @@ public class JobsService {
         this.emails = emails;
         this.reminders = reminders;
         this.audit = audit;
+        this.mail = mail;
         this.clock = clock;
     }
 
@@ -81,6 +86,7 @@ public class JobsService {
                     g = runner.inOrganization(t.organizationId(), () -> recurring.generateNext(t.id(), now, false));
                 } catch (RuntimeException e) {
                     log.error("Recurring template {} failed", t.id(), e);
+                    recordFailure(t, e, now);
                     break;
                 }
                 if (g == null) {
@@ -93,6 +99,37 @@ public class JobsService {
             }
         }
         return created;
+    }
+
+    /** Counts the failure; when it pauses the template, emails the organization's owners once. */
+    private void recordFailure(Target t, RuntimeException e, Instant now) {
+        try {
+            var failure = runner.inOrganization(t.organizationId(), () -> recurring.recordFailure(t.id(), e.getMessage(), now));
+            if (failure.paused()) {
+                notifyOwners(t, failure);
+            }
+        } catch (RuntimeException again) {
+            log.error("Could not record the failure of recurring template {}", t.id(), again);
+        }
+    }
+
+    private void notifyOwners(Target t, RecurringService.Failure failure) {
+        List<String> owners = jdbc.queryForList("""
+                SELECT u.email FROM memberships m JOIN users u ON u.id = m.user_id
+                WHERE m.organization_id = ? AND m.role = 'OWNER'
+                """, String.class, t.organizationId());
+        String orgName = jdbc.queryForObject("SELECT name FROM organizations WHERE id = ?", String.class, t.organizationId());
+        for (String to : owners) {
+            try {
+                mail.send(new MailService.OutgoingMail(to, null, "Fatoora",
+                        "Recurring invoice \"" + failure.name() + "\" was paused", "recurring-paused",
+                        Map.of("orgName", orgName, "name", failure.name(), "error", failure.error(),
+                                "failures", RecurringTemplate.MAX_FAILURES, "templateId", t.id().toString()),
+                        null));
+            } catch (RuntimeException e) {
+                log.warn("Could not tell {} that recurring template {} paused: {}", to, t.id(), e.getMessage());
+            }
+        }
     }
 
     /** "Generate now" from the UI: the current period, even if its date is in the future. */

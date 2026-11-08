@@ -56,9 +56,38 @@ class RecurringScheduleTest {
     @Test
     void resumingSkipsThePeriodsThatPassedWhilePaused() {
         RecurringTemplate t = template(LocalDate.of(2026, 1, 5), null, LocalDate.of(2026, 1, 5));
-        t.pause();
+        t.pause(Instant.now());
         t.resume(LocalDate.of(2026, 4, 20));
         assertThat(t.getNextRunDate()).isEqualTo(LocalDate.of(2026, 5, 5));
         assertThat(t.isDue(LocalDate.of(2026, 4, 20))).isFalse();
+    }
+
+    @Test
+    void threeFailuresInARowPauseItAndResumingRetriesTheMissedPeriod() {
+        RecurringTemplate t = template(LocalDate.of(2026, 1, 5), null, LocalDate.of(2026, 1, 5));
+        assertThat(t.recordFailure("No exchange rate", Instant.now())).isFalse();
+        assertThat(t.recordFailure("No exchange rate", Instant.now())).isFalse();
+        assertThat(t.recordFailure("No exchange rate", Instant.now())).isTrue(); // pauses exactly once
+        assertThat(t.getStatus()).isEqualTo(RecurringTemplate.Status.PAUSED);
+        assertThat(t.isPausedByFailure()).isTrue();
+        assertThat(t.recordFailure("again", Instant.now())).isFalse();
+
+        // Unlike a manual pause, the January period was never invoiced, so it is kept.
+        t.resume(LocalDate.of(2026, 4, 20));
+        assertThat(t.getNextRunDate()).isEqualTo(LocalDate.of(2026, 1, 5));
+        assertThat(t.getFailureCount()).isZero();
+        assertThat(t.isPausedByFailure()).isFalse();
+    }
+
+    @Test
+    void aSuccessfulRunClearsEarlierFailures() {
+        RecurringTemplate t = template(LocalDate.of(2026, 1, 5), null, LocalDate.of(2026, 1, 5));
+        t.recordFailure("SMTP down", Instant.now());
+        t.recordFailure("SMTP down", Instant.now());
+        t.advance(Instant.now());
+        assertThat(t.getFailureCount()).isZero();
+        assertThat(t.getLastError()).isNull();
+        t.recordFailure("again", Instant.now());
+        assertThat(t.getStatus()).isEqualTo(RecurringTemplate.Status.ACTIVE); // the count restarted
     }
 }
