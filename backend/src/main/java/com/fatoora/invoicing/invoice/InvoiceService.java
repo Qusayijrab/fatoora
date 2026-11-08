@@ -15,7 +15,12 @@ import com.fatoora.invoicing.document.DocumentNumberService.DocType;
 import com.fatoora.invoicing.document.LineCalculator.CalculatedLine;
 import com.fatoora.invoicing.document.LineDraftFactory;
 import com.fatoora.invoicing.document.Party;
+import com.fatoora.invoicing.common.money.MoneyDto;
+import com.fatoora.invoicing.document.LineCalculator;
+import com.fatoora.invoicing.document.LineCalculator.LineDraft;
+import com.fatoora.invoicing.invoice.InvoiceDtos.CreditLineInput;
 import com.fatoora.invoicing.invoice.InvoiceDtos.CreditNoteRequest;
+import com.fatoora.invoicing.invoice.InvoiceDtos.CreditableLine;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceRequest;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceResponse;
 import com.fatoora.invoicing.invoice.InvoiceDtos.InvoiceSummary;
@@ -23,6 +28,7 @@ import com.fatoora.invoicing.invoice.InvoiceDtos.PaymentRequest;
 import com.fatoora.invoicing.organization.Organization;
 import com.fatoora.invoicing.organization.OrganizationService;
 import com.fatoora.invoicing.organization.Role;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -290,8 +296,10 @@ public class InvoiceService {
         LocalDate today = organizations.today(org, clock);
 
         Invoice creditNote = Invoice.creditNoteFor(original, today, request.reason().trim());
+        List<UUID> creditedLineIds = request.lines().stream().map(CreditLineInput::invoiceLineId).toList();
         creditNote.edit(original.getClient(), original.getCurrency(), today, null, request.reason().trim(), null,
-                lineFactory.calculate(request.lines(), original.getCurrency()));
+                creditLines(original, request.lines()));
+        creditNote.linkCreditedLines(creditedLineIds);
         creditNote.requireIssuable();
         // A credit note reuses the original invoice's frozen rate, so it offsets it exactly.
         String number = numbers.next(tenant.organizationId(), DocType.CREDIT_NOTE, today.getYear());
@@ -308,6 +316,74 @@ public class InvoiceService {
                 Map.of("creditNote", number, "status", original.getStatus().name()));
         events.publishEvent(InvoiceBalanceChanged.of(original));
         return toResponse(original);
+    }
+
+    /**
+     * Builds credit note lines from the original invoice's lines: same description, unit
+     * and tax rate; the quantity asked for; the original unit price or a lower one. Across
+     * all credit notes, an original line can never be credited beyond its quantity or its
+     * total, so a credit note only ever returns what was actually invoiced.
+     */
+    private List<CalculatedLine> creditLines(Invoice original, List<CreditLineInput> inputs) {
+        String currency = original.getCurrency();
+        Map<UUID, InvoiceLine> originals = new LinkedHashMap<>();
+        original.getLines().forEach(l -> originals.put(l.getId(), l));
+        Map<UUID, BigDecimal> qtyUsed = new LinkedHashMap<>();
+        Map<UUID, Long> totalUsed = new LinkedHashMap<>();
+        for (var so : invoices.creditedLines(original.getId())) {
+            qtyUsed.put(so.getLineId(), so.getQuantity());
+            totalUsed.put(so.getLineId(), so.getTotalMinor());
+        }
+
+        List<CalculatedLine> lines = new java.util.ArrayList<>(inputs.size());
+        for (int i = 0; i < inputs.size(); i++) {
+            CreditLineInput in = inputs.get(i);
+            String field = "lines[" + i + "]";
+            InvoiceLine line = originals.get(in.invoiceLineId());
+            if (line == null) {
+                throw ApiException.badRequest(field + ": that line is not on invoice " + original.getNumber());
+            }
+            BigDecimal quantity = new BigDecimal(in.quantity());
+            if (quantity.signum() <= 0) {
+                throw ApiException.badRequest(field + ": the quantity must be more than zero");
+            }
+            BigDecimal qtyLeft = line.getQuantity().subtract(qtyUsed.getOrDefault(line.getId(), BigDecimal.ZERO));
+            if (quantity.compareTo(qtyLeft) > 0) {
+                throw ApiException.badRequest(field + ": only " + qtyLeft.stripTrailingZeros().toPlainString()
+                        + " of \"" + line.getDescription() + "\" is left to credit");
+            }
+            Money originalPrice = line.unitPrice(currency);
+            Money price = in.unitPrice() == null ? originalPrice : Money.parse(in.unitPrice(), currency);
+            if (!price.isPositive() || price.compareTo(originalPrice) > 0) {
+                throw ApiException.badRequest(field + ": the unit price must be more than zero and at most the invoiced "
+                        + originalPrice);
+            }
+            CalculatedLine credit = LineCalculator.calculate(new LineDraft(line.getProductId(), line.getDescription(),
+                    quantity, line.getUnit(), price, line.getTaxRateId(), line.getTaxRate()));
+            long totalLeft = line.total(currency).amountMinor() - totalUsed.getOrDefault(line.getId(), 0L);
+            if (credit.total().amountMinor() > totalLeft) {
+                throw ApiException.badRequest(field + ": only " + Money.ofMinor(totalLeft, currency)
+                        + " of \"" + line.getDescription() + "\" is left to credit");
+            }
+            qtyUsed.merge(line.getId(), quantity, BigDecimal::add);
+            totalUsed.merge(line.getId(), credit.total().amountMinor(), Long::sum);
+            lines.add(credit);
+        }
+        return lines;
+    }
+
+    /** Per invoice line, what credit notes may still credit (for the credit note dialog). */
+    private List<CreditableLine> creditable(Invoice invoice) {
+        String currency = invoice.getCurrency();
+        Map<UUID, InvoiceRepository.CreditedSoFar> used = new LinkedHashMap<>();
+        invoices.creditedLines(invoice.getId()).forEach(c -> used.put(c.getLineId(), c));
+        return invoice.getLines().stream().map(l -> {
+            var u = used.get(l.getId());
+            BigDecimal qty = l.getQuantity().subtract(u == null ? BigDecimal.ZERO : u.getQuantity());
+            long total = l.total(currency).amountMinor() - (u == null ? 0L : u.getTotalMinor());
+            return new CreditableLine(l.getId(), qty.max(BigDecimal.ZERO).stripTrailingZeros().toPlainString(),
+                    MoneyDto.from(Money.ofMinor(Math.max(0, total), currency)));
+        }).toList();
     }
 
     // ---- helpers ----
@@ -343,6 +419,8 @@ public class InvoiceService {
         List<Invoice> credits = invoice.getKind() == InvoiceKind.INVOICE && invoice.getId() != null
                 ? invoices.findByCreditedInvoice_IdOrderByIssueDateAscCreatedAtAsc(invoice.getId())
                 : List.of();
-        return InvoiceResponse.from(invoice, paid, credits);
+        List<CreditableLine> creditable = invoice.getKind() == InvoiceKind.INVOICE && invoice.getId() != null
+                && invoice.getStatus() != InvoiceStatus.DRAFT ? creditable(invoice) : List.of();
+        return InvoiceResponse.from(invoice, paid, credits, creditable);
     }
 }

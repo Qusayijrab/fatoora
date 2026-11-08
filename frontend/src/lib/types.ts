@@ -194,6 +194,8 @@ export type Invoice = InvoiceSummary & {
   refundDue: Money;
   payments: Payment[];
   creditNotes: { id: string; number: string; total: Money; issueDate: string; reason: string | null }[];
+  /** Per invoice line, what credit notes may still credit. */
+  creditable: { lineId: string; quantity: string; amount: Money }[];
   creditedInvoice: { id: string; number: string } | null;
   quoteId: string | null;
   baseCurrency: string | null;
@@ -365,3 +367,6 @@ export type PaymentProblem = {
   detail: string;
   receivedAt: string;
 };
+
+/** One credit note line: an original invoice line, how many units, and optionally a lower unit price. */
+export type CreditLineInput = { invoiceLineId: string; quantity: string; unitPrice: string | null };

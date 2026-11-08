@@ -44,9 +44,22 @@ public final class InvoiceDtos {
     /** keepDates: issue with the draft's own (past) dates instead of today's. */
     public record IssueRequest(Boolean keepDates) {}
 
+    /**
+     * Credits lines of the original invoice only. Each line names the invoice line it
+     * credits and how many units; unitPrice is optional (default: the original price) and
+     * may be lower, to credit a price reduction rather than a return.
+     */
     public record CreditNoteRequest(
             @NotBlank @Size(max = 1000) String reason,
-            @NotEmpty(message = "add at least one line") @Size(max = 200) List<@Valid LineInput> lines) {}
+            @NotEmpty(message = "add at least one line") @Size(max = 200) List<@Valid CreditLineInput> lines) {}
+
+    public record CreditLineInput(
+            @NotNull UUID invoiceLineId,
+            @NotNull @Pattern(regexp = DocumentDtos.QUANTITY_PATTERN, message = "must be a quantity like 1 or 2.5") String quantity,
+            @Pattern(regexp = DocumentDtos.AMOUNT_PATTERN, message = "must be an amount like 100 or 99.500") String unitPrice) {}
+
+    /** What is still left to credit on one invoice line. */
+    public record CreditableLine(UUID lineId, String quantity, MoneyDto amount) {}
 
     public record PaymentResponse(
             UUID id, Payment.Kind kind, MoneyDto amount, Payment.Method method, LocalDate paidOn, String reference,
@@ -103,6 +116,7 @@ public final class InvoiceDtos {
             MoneyDto refundDue,
             List<PaymentResponse> payments,
             List<CreditNoteRef> creditNotes,
+            List<CreditableLine> creditable,
             DocumentRef creditedInvoice,
             UUID quoteId,
             String baseCurrency,
@@ -114,7 +128,8 @@ public final class InvoiceDtos {
             String voidReason,
             Instant createdAt) {
 
-        static InvoiceResponse from(Invoice i, List<Payment> payments, List<Invoice> creditNotes) {
+        static InvoiceResponse from(Invoice i, List<Payment> payments, List<Invoice> creditNotes,
+                List<CreditableLine> creditable) {
             String cur = i.getCurrency();
             Invoice credited = i.getCreditedInvoice();
             return new InvoiceResponse(
@@ -131,6 +146,7 @@ public final class InvoiceDtos {
                             .map(cn -> new CreditNoteRef(cn.getId(), cn.getNumber(), MoneyDto.from(cn.getTotal()),
                                     cn.getIssueDate(), cn.getNotes()))
                             .toList(),
+                    creditable,
                     credited == null ? null : new DocumentRef(credited.getId(), credited.getNumber()),
                     i.getQuoteId(), i.getBaseCurrency(),
                     i.getExchangeRate() == null ? null : i.getExchangeRate().stripTrailingZeros().toPlainString(),

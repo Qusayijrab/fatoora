@@ -93,6 +93,18 @@ public abstract class IntegrationTest {
                 .formatted(description, quantity, unitPrice, taxRateId == null ? "null" : "\"" + taxRateId + "\"");
     }
 
+    /** One credit note line: which invoice line, how many, and optionally a lower unit price. */
+    protected static String creditLine(String invoiceLineId, String quantity, String unitPrice) {
+        return """
+                {"invoiceLineId":"%s","quantity":"%s","unitPrice":%s}"""
+                .formatted(invoiceLineId, quantity, unitPrice == null ? "null" : "\"" + unitPrice + "\"");
+    }
+
+    protected static String creditNote(String reason, String... lines) {
+        return """
+                {"reason":"%s","lines":[%s]}""".formatted(reason, String.join(",", lines));
+    }
+
     protected static String document(String clientId, String currency, String... lines) {
         return """
                 {"clientId":"%s","currency":"%s","issueDate":"2026-11-03","lines":[%s]}"""
