@@ -28,6 +28,8 @@ import com.fatoora.invoicing.invoice.InvoiceDtos.PaymentRequest;
 import com.fatoora.invoicing.organization.Organization;
 import com.fatoora.invoicing.organization.OrganizationService;
 import com.fatoora.invoicing.organization.Role;
+import com.fatoora.invoicing.tax.TaxRate;
+import com.fatoora.invoicing.tax.TaxRateService;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -60,11 +62,13 @@ public class InvoiceService {
     private final AuditService audit;
     private final ApplicationEventPublisher events;
     private final FxService fx;
+    private final TaxRateService taxRates;
     private final Clock clock;
 
     public InvoiceService(InvoiceRepository invoices, PaymentRepository payments, ClientService clients,
             OrganizationService organizations, LineDraftFactory lineFactory, DocumentNumberService numbers,
-            AuditService audit, ApplicationEventPublisher events, FxService fx, Clock clock) {
+            AuditService audit, ApplicationEventPublisher events, FxService fx, TaxRateService taxRates, Clock clock) {
+        this.taxRates = taxRates;
         this.invoices = invoices;
         this.payments = payments;
         this.clients = clients;
@@ -143,6 +147,36 @@ public class InvoiceService {
         audit.record("invoice", invoice.getId(), "created", "Draft invoice created from a quote",
                 Map.of("quoteId", quoteId.toString(), "total", invoice.getTotal().toString()));
         return invoice;
+    }
+
+    /**
+     * A new draft with the same client, currency, notes, terms and lines, dated today with
+     * the same payment terms. Lines take today's tax rates; a line whose rate was archived
+     * comes over without tax, for the user to choose.
+     */
+    @Transactional
+    public InvoiceResponse duplicate(UUID id) {
+        TenantContext.require();
+        Invoice source = load(id);
+        if (source.getKind() != InvoiceKind.INVOICE) {
+            throw ApiException.conflict("Only invoices can be duplicated, not credit notes");
+        }
+        Client client = activeClient(source.getClient().getId());
+        LocalDate today = organizations.today(organizations.currentEntity(), clock);
+        long terms = source.getDueDate() == null ? DEFAULT_TERMS_DAYS
+                : java.time.temporal.ChronoUnit.DAYS.between(source.getIssueDate(), source.getDueDate());
+        String currency = source.getCurrency();
+        List<CalculatedLine> lines = source.getLines().stream().map(l -> {
+            TaxRate rate = l.getTaxRateId() == null ? null : taxRates.findActive(l.getTaxRateId()).orElse(null);
+            return LineCalculator.calculate(new LineDraft(l.getProductId(), l.getDescription(), l.getQuantity(), l.getUnit(),
+                    l.unitPrice(currency), rate == null ? null : rate.getId(), rate == null ? BigDecimal.ZERO : rate.getRate()));
+        }).toList();
+        Invoice copy = createDraft(client, currency, source.getNotes(), source.getTerms(), lines, today,
+                today.plusDays(Math.max(0, terms)));
+        audit.record("invoice", copy.getId(), "created",
+                "Draft invoice created as a copy of " + (source.getNumber() == null ? "a draft" : source.getNumber()),
+                Map.of("copiedFrom", source.getId().toString()));
+        return toResponse(copy);
     }
 
     /** Used by recurring invoices: a draft for a given period date. */

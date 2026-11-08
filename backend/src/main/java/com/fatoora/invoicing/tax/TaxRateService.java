@@ -75,6 +75,12 @@ public class TaxRateService {
     }
 
     /** Package-visible for products and invoices: a rate from another org is simply "not found". */
+    /** The rate if it exists in this organization and is not archived. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<TaxRate> findActive(UUID id) {
+        return rates.findById(id).filter(r -> !r.isArchived());
+    }
+
     public TaxRate find(UUID id) {
         return rates.findById(id).orElseThrow(() -> ApiException.notFound("Tax rate not found"));
     }

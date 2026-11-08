@@ -127,3 +127,15 @@ export async function getPaymentLink(id: string): Promise<FormState & { url?: st
     return toFormState(e);
   }
 }
+
+/** A new draft with the same client and lines, dated today; opens it. */
+export async function duplicateInvoice(id: string): Promise<FormState> {
+  let copy: Invoice;
+  try {
+    copy = await api<Invoice>(`/invoices/${encodeURIComponent(id)}/duplicate`, { method: "POST" });
+  } catch (e) {
+    return toFormState(e);
+  }
+  refresh(copy.id);
+  redirect(`/invoices/${copy.id}`);
+}

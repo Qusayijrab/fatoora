@@ -79,6 +79,13 @@ public class InvoiceController {
         service.deleteDraft(id);
     }
 
+    /** A new draft with the same client and lines, dated today. */
+    @PostMapping("/{id}/duplicate")
+    @ResponseStatus(HttpStatus.CREATED)
+    public InvoiceResponse duplicate(@PathVariable UUID id) {
+        return service.duplicate(id);
+    }
+
     @PostMapping("/{id}/issue")
     public InvoiceResponse issue(@PathVariable UUID id, @RequestBody(required = false) IssueRequest request) {
         return service.issue(id, request != null && Boolean.TRUE.equals(request.keepDates()));
